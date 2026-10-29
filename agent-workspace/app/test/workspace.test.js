@@ -7,28 +7,8 @@ import { Store } from '../src/store.js';
 import { Workspace } from '../src/workspace.js';
 import { git } from '../src/git.js';
 
-export class FakeRuntime {
-  constructor() { this.sessions = new Map(); this.sent = []; this.replies = []; }
-  async health() { return { healthy:true,version:'test' }; }
-  async catalog() { return [{id:'deepseek',name:'DeepSeek',models:[{id:'test',name:'Test'}]}]; }
-  async create() {
-    const id=`ses${this.sessions.size}`;
-    this.sessions.set(id,{messages:[],status:'idle',permissions:[],questions:[]}); return {id};
-  }
-  async snapshot(t) { return structuredClone(this.sessions.get(t.sessionID)); }
-  async send(t,m) {
-    this.sent.push(m.runtimeID);
-    const s=this.sessions.get(t.sessionID);s.status='busy';
-    s.messages.push({info:{id:m.runtimeID,role:'user'},parts:[{type:'text',text:m.text}]});
-  }
-  finish(t) {
-    const s=this.sessions.get(t.sessionID);s.status='idle';
-    const id=t.queue.find(m=>m.id===t.current).runtimeID;
-    s.messages.push({info:{id:`msgreply${Date.now()}`,role:'assistant',parentID:id,time:{completed:Date.now()},finish:'stop'},parts:[{type:'text',text:'done'}]});
-  }
-  async abort(t) { const s=this.sessions.get(t.sessionID);s.status='idle';s.permissions=[];return true; }
-  async reply(t,id,reply) { this.replies.push({task:t.id,id,reply}); this.sessions.get(t.sessionID).permissions=[]; }
-}
+import { FakeRuntime } from './helpers/fake-runtime.js';
+
 async function fixture(t) {
   const dir=await mkdtemp(join(tmpdir(),'personal-ai-test-'));t.after(()=>rm(dir,{recursive:true,force:true}));
   const repo=join(dir,'repo'); await import('node:fs/promises').then(fs=>fs.mkdir(repo));
