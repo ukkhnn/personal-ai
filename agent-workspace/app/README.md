@@ -1,68 +1,86 @@
 # Personal AI Workspace 실행
 
-기존 OpenCode 설정을 재사용하는 로컬 개발 워크스페이스의 첫 구현이다. 완성된 첫 제품 버전은 아니며, 남은 범위는 [로드맵](../ROADMAP.md)에 유지한다.
+자체 서버·화면에서 프로젝트와 작업을 관리하고 기존 OpenCode 설정을 재사용한다. 첫 제품 버전의 일부를 구현한 상태이며, [로드맵](../ROADMAP.md)의 전체 완료 기준은 아직 충족하지 않았다. 맥미니의 실제 확인 결과와 재개 절차는 [HANDOFF.md](HANDOFF.md), 운영 설정은 [OPERATIONS.md](OPERATIONS.md)를 따른다.
 
 ## 시작
 
-Node.js 22.19 이상과 기존에 인증된 OpenCode가 필요하다. 이번 확인 환경은 macOS / Node 22.19.0 / OpenCode 1.18.18이다. 추가 npm 패키지나 전역 설치 없이 실행한다.
+실행 저장소·상태·worktree는 iCloud 밖에 둔다. 맥미니 전용 저장소는 `~/Developer/personal-ai`다. 공유 폴더의 Git 작업 폴더를 함께 변경하지 않는다.
 
 ```sh
-cd agent-workspace/app
+cd ~/Developer/personal-ai/agent-workspace/app
 npm run doctor
 npm start
 ```
 
-`http://127.0.0.1:4310`에 접속한다. 터미널에 안내되는 `~/.local/share/personal-ai/access-code.txt`의 암호로 로그인한다. 암호는 Git에 넣지 않는다. 기존 OpenCode 설정·인증 파일은 읽어 사용하며 변경하거나 앱 설정에 복제하지 않는다. 앱 전용 OpenCode 서버를 임의의 로컬 포트와 임시 암호로 시작한다.
+Node.js 22.19 이상이 필요하다. 맥미니 확인 버전은 Node 26.7.0 / OpenCode 1.18.18이다. 엔진은 `OPENCODE_BIN` → PATH → `~/.opencode/bin/opencode` → `~/.local/bin/opencode` → 프로젝트 내부 고정 버전 순으로 찾는다. 기존 설치가 없을 때만 다음 명령으로 **프로젝트 내부** 엔진을 설치한다. 전역 설치나 기존 공급자 설정 변경은 수행하지 않는다.
 
-1. 커밋이 있는 Git 저장소의 최상위 경로를 프로젝트로 연결한다.
-2. 연결된 공급자의 모델, 작업 지침, 메모리를 실행 템플릿으로 저장한다.
-3. 새 작업에서 프로젝트와 템플릿을 선택한다. 저장소 HEAD 기준의 독립 브랜치·worktree를 만든다.
-4. 대화창에서 지시한다. 추가 지시는 현재 실행이 끝난 뒤 순서대로 전달된다.
-5. 명령 요청을 확인해 이번 실행을 승인하거나 거절한다. 중단은 별도 버튼이며 대기 지시·파일은 보존한다.
-6. 변경 사항 탭에서 작업 폴더 상태와 추적 파일의 차이를 확인한다.
+```sh
+npm run setup:runtime
+```
 
-설정은 `.env.example`을 참고한다. `.env`는 Git에서 제외된다. 저장 경로는 iCloud 밖을 사용한다. 브라우저를 닫아도 서버가 실행 중이면 작업은 계속된다. 서버·Mac 종료 후 실행 자체의 자동 재개까지 보장하지는 않는다.
+고정 버전·무결성은 `tools/opencode/package-lock.json`에 보존한다. npm 설치 스크립트를 끄고 설치하며 플랫폼별 native 실행 파일을 직접 사용한다. 앱 자체는 외부 npm 라이브러리 없이 실행된다. 이 개발 환경 준비 명령과 제품 내부 에이전트의 의존성 자동 설치 정책은 별개다. **제품은 여전히 모든 셸 명령에 승인을 요구한다.**
 
-## 구현 구조
+`http://127.0.0.1:4310`에 접속해 `~/.local/share/personal-ai/access-code.txt`의 암호로 로그인한다. 암호·API 키·인증 파일을 Git이나 대화에 붙여 넣지 않는다. 앱 전용 OpenCode 서버는 임의의 loopback 포트와 임시 암호를 사용한다.
 
-- `src/server.js`: 인증·동일 출처 검증·자체 HTTP API와 정적 화면
-- `src/workspace.js`: 프로젝트·템플릿·작업, 메시지 대기열, 중단·승인 상태
-- `src/opencode.js`: OpenCode 실행·연결 어댑터, 메시지·권한·질문 변환
-- `src/git.js`: 저장소 확인, 브랜치·worktree 생성, 변경 조회
-- `src/store.js`: 스키마 버전 1 JSON 저장, 원자적 교체, 손상 시 덮어쓰기 거부
-- `public/`: 반응형 자체 UI. 모델 출력은 HTML로 실행하지 않고 텍스트로 표시
+1. 맥미니에 있는 커밋된 Git 저장소의 최상위 폴더를 프로젝트로 연결한다.
+2. 이 서버에서 실제 연결된 공급자의 모델·작업 지침·메모리를 템플릿으로 저장한다.
+3. 프로젝트·템플릿으로 작업을 생성하면 HEAD 기준의 독립 브랜치·worktree가 만들어진다.
+4. 일반 메시지는 추가 지시 대기열로 전달한다. 별도 중단 버튼으로만 중단한다.
+5. 명령 실행을 한 번 승인하거나 거절한다. 질문 응답과 중단 후 이어가기를 지원한다.
+6. 변경 사항에서 파일 상태와 추적 파일 diff를 확인한다.
 
-자체 작업 ID와 OpenCode 세션 ID는 분리한다. 템플릿은 작업 생성 시 복사해 적용하고 기존 작업 설정을 뒤에서 바꾸지 않는다. 저장 파일은 단일 프로세스 전용이며 데이터 폴더 잠금으로 중복 서버를 막는다. 다른 런타임은 어댑터부터 확장하되 메시지 표현·기능 차이 정규화는 추가 작업이 필요하다.
+## 인증과 원격 접속
 
-## 데이터와 현재 한계
+앱은 계속 `127.0.0.1`에만 바인딩한다. Tailscale Serve가 HTTPS를 종료하고 로컬 앱으로 전달한다. `WORKSPACE_PUBLIC_ORIGIN`에 정확한 `https://장치.테일넷.ts.net` 주소를 지정한다. 임의 Host·Origin·전달 헤더로 허용 주소를 늘릴 수 없고 Funnel 요청을 거부한다. Tailscale 연결만으로 앱 로그인이 생략되지는 않는다.
 
-`~/.local/share/personal-ai`에 상태·worktree·실행 로그가 저장된다. OpenCode 자체 세션 데이터도 별도로 필요하다. GitHub는 소스 전달만 담당한다. 데이터와 인증은 자동 전송하지 않는다.
+원격 쿠키는 `__Host-workspace`, Secure, HttpOnly, SameSite=Strict이며 12시간 유효하다. 로컬/원격 출처와 localhost/127.0.0.1 세션은 서로 분리한다. 서버 재시작 후 각 기기에서 다시 로그인한다. 자동화 API 호출은 로그인·로그아웃을 포함한 모든 POST에 실제 접속 주소와 일치하는 `Origin` 헤더가 필요하다.
 
-- 프로젝트·템플릿 생성, 독립 작업, 대화 조회, 지시 대기열, 중단, 실행 승인, 질문 응답, 추적 파일 diff를 구현했다.
-- 모델·프롬프트·직접 입력 메모리를 지원한다. 스킬·도구·권한 편집과 템플릿 수정·삭제는 아직 지원하지 않는다.
-- 모든 셸 명령은 승인한다. 프로젝트 의존성 자동 설치 정책의 안전한 판별·집행은 남아 있다. worktree는 OS 보안 격리가 아니며 승인한 명령은 다른 경로에 영향을 줄 수 있다.
-- 자동 커밋·push·최종 병합, 원격 접속, 서버 자동 시작, 작업 정리, 백업·복원은 구현 전이다.
-- 새 파일은 상태 목록만 보여준다. 완전한 파일 탐색기·새 파일 내용·미디어 결과물 뷰어는 후속 구현이다.
-- 재시작 시 기록과 대기열을 복원한다. 전달 여부가 모호한 지시를 자동 재전송하지 않는다. 실행 중 서버 종료 시 상태 확인 후 중단·이어가기 등 사용자 조치가 필요할 수 있다.
-- 현재 앱은 127.0.0.1에만 열리고 로그인 쿠키는 로컬 HTTP용이다. 외부 공개·원격 서비스로 사용하기 전 HTTPS·접근 제어·쿠키 정책을 함께 설계해야 한다.
+운영 설정을 생성하는 명령은 파일만 준비하고 시스템 설정을 적용하지 않는다.
 
-## 검증
+```sh
+npm run prepare:macos -- --output "$HOME/.local/share/personal-ai/operations/review-new" --origin https://your-device.your-tailnet.ts.net
+```
+
+실제 Tailscale 연결·HTTPS Serve 활성화·LaunchAgent 등록은 사용자 승인 후 [운영 안내](OPERATIONS.md)에 따라 적용한다. 인증·환경 파일은 저장소 밖 `~/.local/share/personal-ai/server.env`를 사용할 수 있다.
+
+## 구현 경계
+
+| 위치 | 책임 |
+|---|---|
+| `src/server.js`, `src/http-security.js` | 자체 HTTP API, 로그인, HTTPS·Origin 경계 |
+| `src/workspace.js` | 프로젝트·템플릿·작업, 대기열, 중단·승인 상태 |
+| `src/opencode.js`, `src/runtime-config.js` | 실행 엔진 어댑터, 기존/로컬 엔진 탐색 |
+| `src/git.js`, `src/paths.js` | 저장소·Git 공용 경로 검증, worktree·변경 조회 |
+| `src/store.js` | 버전 1 JSON 저장, 원자적 교체, 손상 시 덮어쓰기 거부 |
+| `scripts/doctor.js`, `scripts/prepare-macos.js` | 비밀정보 없는 진단, 운영 설정안 생성 |
+| `public/` | 기존 디자인을 유지한 반응형 화면 |
+
+자체 작업 ID와 OpenCode 세션 ID를 분리한다. 템플릿은 작업 생성 시 복사하며 이후 변경이 기존 작업에 소급 적용되지 않는다. 상태 폴더 잠금으로 중복 서버 시작을 차단한다. 상태는 단일 프로세스 전용이며 엔진별 이벤트 정규화와 설정 이전은 추가 설계가 필요하다.
+
+## 검증과 현재 한계
 
 ```sh
 npm run check
 npm test
 ```
 
-2026-10-28: 9개 테스트 통과. worktree 변경 분리, 템플릿 스냅샷, 대기열 중복·재시작, 중단 보존, 승인 소유권·만료, 전달 불확실성, 연결 끊김, 저장 손상, 인증·출처·런타임 주소 경계를 확인했다.
+2026-10-29 맥미니에서 27개 테스트가 통과했다. 실제 HTTP·인증·Git·디스크를 사용하는 테스트에는 모의 엔진을 사용한다. 두 클라이언트의 같은 작업 조회, 대기열·승인 소유권·질문·중복 방지, 작업 병행 격리, 재접속·서버 재시작, HTTPS·쿠키·출처 경계, 공유 저장소 차단과 운영 설정 생성을 확인한다. 브라우저에서도 모의 엔진의 전체 흐름과 390px 모바일 화면을 확인했다. **이 결과는 실제 DeepSeek·Tailscale·물리 기기 검증을 대신하지 않는다.**
 
-실제 OpenCode + 기존 DeepSeek `deepseek-flash`로 파일 생성 → 셸 명령 승인 → 추가 지시 순차 실행 → 파일·차이 확인도 통과했다. 실제 모델 호출은 비용이 발생하므로 다음 명령을 명시적으로 실행할 때만 수행한다.
+기존 공급자 인증이 연결된 뒤 명시적으로 선택한 모델로만 실제 smoke를 실행한다. 2개 짧은 모델 턴을 사용하며, 병행 옵션은 1턴을 추가한다. 호출 비용이 발생할 수 있다.
 
 ```sh
-LIVE_MODEL_TEST=1 node scripts/smoke-live.js
+LIVE_MODEL_TEST=1 LIVE_PROVIDER_ID=deepseek LIVE_MODEL_ID=deepseek-flash node scripts/smoke-live.js
+# 연결된 실제 모델 ID를 사용한다. 필요할 때만 LIVE_PARALLEL_TEST=1 추가.
 ```
+
+- 맥북에서는 2026-10-28 실제 DeepSeek 검증을 마쳤다. 맥미니에서는 기존 DeepSeek 인증을 찾지 못했다. live smoke의 공급자 검사에서 중단되었으며 실제 모델 요청은 전송하지 않았다.
+- 모델·프롬프트·직접 입력 메모리를 지원한다. 스킬·도구·권한 편집, 템플릿 수정·삭제는 남아 있다.
+- 모든 셸 명령은 승인 대상이다. worktree는 OS 보안 격리가 아니다. 프로젝트 의존성 자동 설치의 판별·집행을 구현하기 전까지 승인 범위를 완화하지 않는다.
+- 제품 내부 자동 커밋·push·최종 병합, 작업 정리, 백업·복원은 구현 전이다. 이번 개발 브랜치를 커밋·push하는 것과 제품 기능 구현은 다르다.
+- 새 파일은 목록만 제공한다. 전체 파일 탐색·새 파일 내용·미디어 결과물 조회는 남아 있다.
+- 재시작 시 저장 기록과 대기열을 복원한다. 전달이 모호한 지시는 자동 재전송하지 않는다. 엔진 세션의 무손실 복구·기기 간 이전을 보장하지 않는다.
+- LaunchAgent 생성은 구현했지만 실제 등록·재부팅 검증은 별도 승인·확인이 필요하다. macOS 로그인 전 실행, 잠자기 방지, FileVault 해제는 포함하지 않는다.
 
 ## UI 참고
 
-[Linear UI redesign](https://linear.app/now/how-we-redesigned-the-linear-ui)의 중성 색상·사이드바·정보 위계와 [Cursor Agent](https://cursor.com/docs/agent/overview)의 대화 중심 작업 흐름을 참고했다. 외부 이미지·폰트·아이콘 패키지 없이 자체 스타일과 SVG로 구현했다. 설정은 모달, 대화와 차이는 탭, 작업 정보는 보조 패널로 구분한다. 좁은 화면에서는 작업 목록을 메뉴로 접고 입력창을 하단에 유지한다.
-
-Mac mini에서 이어가는 절차는 [HANDOFF.md](HANDOFF.md)를 참고한다.
+[Linear UI redesign](https://linear.app/now/how-we-redesigned-the-linear-ui)과 [Cursor Agent](https://cursor.com/docs/agent/overview)를 참고한 기존 구조·스타일을 유지한다. 모델 출력은 HTML로 실행하지 않고 텍스트로 표시한다. 이번 변경은 서버 접속 방식·모델 인증 안내에 집중했다.

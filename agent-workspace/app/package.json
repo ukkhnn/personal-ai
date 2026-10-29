@@ -13,6 +13,6 @@
     "doctor": "node --env-file-if-exists=.env scripts/doctor.js",
     "setup:runtime": "npm ci --prefix tools/opencode --ignore-scripts --cache tools/opencode/.npm-cache --no-audit --no-fund",
     "prepare:macos": "node --env-file-if-exists=.env scripts/prepare-macos.js",
-    "test:live": "node scripts/smoke-live.js"
+    "test:live": "node --env-file-if-exists=.env scripts/smoke-live.js"
   }
 }
