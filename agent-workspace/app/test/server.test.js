@@ -12,7 +12,7 @@ test('HTTP boundary requires login, denies cross-origin writes and rejects arbit
   t.after(()=>new Promise(resolve=>{server.close(resolve);server.closeAllConnections();}));
   const base=`http://127.0.0.1:${server.address().port}`;
   assert.equal((await fetch(base+'/api/state')).status,401);
-  const login=await fetch(base+'/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:'test-password-for-local-only'})});
+  const login=await fetch(base+'/api/login',{method:'POST',headers:{origin:base,'content-type':'application/json'},body:JSON.stringify({password:'test-password-for-local-only'})});
   assert.equal(login.status,200);assert.match(login.headers.get('set-cookie'),/HttpOnly; SameSite=Strict/);
   const cookie=login.headers.get('set-cookie').split(';')[0];
   assert.equal((await fetch(base+'/api/state',{headers:{cookie}})).status,200);
@@ -24,7 +24,7 @@ test('HTTP boundary requires login, denies cross-origin writes and rejects arbit
   });
   assert.equal(wrongHost,403);
   const page=await fetch(base);assert.match(page.headers.get('content-security-policy'),/frame-ancestors 'none'/);
-  await fetch(base+'/api/logout',{method:'POST',headers:{cookie}});
+  await fetch(base+'/api/logout',{method:'POST',headers:{cookie,origin:base}});
   assert.equal((await fetch(base+'/api/state',{headers:{cookie}})).status,401);
 });
 test('runtime credentials cannot be sent to non-loopback or embedded URL destinations',()=>{

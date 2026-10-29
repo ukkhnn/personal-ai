@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { randomBytes, timingSafeEqual, createHash } from 'node:crypto';
 import { InputError } from './workspace.js';
+import { normalizePublicOrigin, requestContext, sessionCookie, sessionToken } from './http-security.js';
 
 const assets = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'] };
 const hash = value => createHash('sha256').update(value).digest();
@@ -20,7 +21,8 @@ async function body(request) {
   } catch { throw new InputError('올바른 JSON 객체가 필요합니다.'); }
 }
 
-export function createApp(workspace, runtime, password) {
+export function createApp(workspace, runtime, password, options = {}) {
+  const publicOrigin = normalizePublicOrigin(options.publicOrigin);
   const sessions = new Map(); let attempts = [];
   return createServer(async (req, res) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -31,11 +33,9 @@ export function createApp(workspace, runtime, password) {
       res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(data));
     };
     try {
-      const port = req.socket.localPort;
-      if (![ `127.0.0.1:${port}`, `localhost:${port}` ].includes(req.headers.host)) throw new InputError('허용되지 않은 호스트입니다.', 403);
-      const origin = `http://${req.headers.host}`;
-      if ((req.headers.origin && req.headers.origin !== origin) || req.headers['sec-fetch-site'] === 'cross-site') throw new InputError('다른 사이트의 요청은 허용하지 않습니다.', 403);
-      const path = new URL(req.url, origin).pathname;
+      const context = requestContext(req, publicOrigin);
+      if (context.secure) res.setHeader('Strict-Transport-Security', 'max-age=31536000');
+      const path = new URL(req.url, context.origin).pathname;
       if (req.method === 'GET' && assets[path]) {
         const [file, type] = assets[path];
         res.writeHead(200, { 'Content-Type': `${type}; charset=utf-8` });
@@ -48,15 +48,21 @@ export function createApp(workspace, runtime, password) {
         const input = await body(req);
         if (typeof input.password !== 'string' || !timingSafeEqual(hash(input.password), hash(password))) throw new InputError('접속 암호가 일치하지 않습니다.', 401);
         const token = randomBytes(32).toString('base64url');
-        for (const [key, expiry] of sessions) if (expiry < Date.now()) sessions.delete(key);
-        sessions.set(token, Date.now() + 12 * 3600000);
-        res.setHeader('Set-Cookie', `workspace=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=43200`);
+        for (const [key, session] of sessions) if (session.expiresAt <= Date.now()) sessions.delete(key);
+        const previousToken = sessionToken(req, context);
+        if (sessions.get(previousToken)?.origin === context.origin) sessions.delete(previousToken);
+        sessions.set(token, { expiresAt: Date.now() + 12 * 3600000, origin: context.origin });
+        res.setHeader('Set-Cookie', sessionCookie(context, token));
         return json({ ok: true });
       }
-      const token = req.headers.cookie?.split(';').map(c => c.trim()).find(c => c.startsWith('workspace='))?.slice(10);
-      if (!token || !(sessions.get(token) > Date.now())) throw new InputError('로그인이 필요합니다.', 401);
+      const token = sessionToken(req, context);
+      const session = sessions.get(token);
+      if (!session || session.origin !== context.origin || session.expiresAt <= Date.now()) throw new InputError('로그인이 필요합니다.', 401);
       if (req.method === 'POST' && path === '/api/logout') {
-        sessions.delete(token); res.setHeader('Set-Cookie', 'workspace=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'); return json({ ok: true });
+        sessions.delete(token); res.setHeader('Set-Cookie', sessionCookie(context, '', 0)); return json({ ok: true });
+      }
+      if (req.method === 'GET' && path === '/api/system') {
+        return json({ publicOrigin, access: context.secure ? 'tailscale' : 'local', authentication: 'password', sessionExpiresAt: session.expiresAt });
       }
       if (req.method === 'GET' && path === '/api/state') {
         const { projects, templates, tasks } = workspace.data;
