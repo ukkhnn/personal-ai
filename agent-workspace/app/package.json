@@ -3,11 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22.19.0" },
+  "engines": {
+    "node": ">=22.19.0"
+  },
   "scripts": {
     "start": "node --env-file-if-exists=.env src/main.js",
     "test": "node --test test/*.test.js",
-    "check": "node --check src/main.js && node --check src/server.js && node --check public/app.js",
-    "doctor": "node --env-file-if-exists=.env scripts/doctor.js"
+    "check": "node scripts/check.js",
+    "doctor": "node --env-file-if-exists=.env scripts/doctor.js",
+    "setup:runtime": "npm ci --prefix tools/opencode --ignore-scripts --cache tools/opencode/.npm-cache --no-audit --no-fund",
+    "prepare:macos": "node --env-file-if-exists=.env scripts/prepare-macos.js",
+    "test:live": "node scripts/smoke-live.js"
   }
 }

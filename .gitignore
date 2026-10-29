@@ -3,3 +3,7 @@
 .env.*
 !.env.example
 node_modules/
+
+# Local engine cache and generated Mac mini operation plans
+.npm-cache/
+agent-workspace/app/.operations/
