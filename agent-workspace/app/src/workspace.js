@@ -28,7 +28,9 @@ export class Workspace {
     return task;
   }
   async addProject(input) {
-    const directory = await repository(text(input.directory, '저장소 경로', 4096));
+    let directory;
+    try { directory = await repository(text(input.directory, '저장소 경로', 4096)); }
+    catch (error) { throw new InputError(error.message); }
     const existing = this.data.projects.find(p => p.directory === directory);
     if (existing) return existing;
     const project = { id: randomUUID(), name: basename(directory), directory };

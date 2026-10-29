@@ -1,9 +1,11 @@
 import { mkdirSync, readFileSync, openSync, writeFileSync, fsyncSync, closeSync, renameSync, chmodSync } from 'node:fs';
 import { join } from 'node:path';
+import { assertLocalPath } from './paths.js';
 
 // Schema is owned by the workspace, not by a particular runtime.
 export class Store {
   constructor(directory) {
+    directory = assertLocalPath(directory, '상태 데이터');
     mkdirSync(directory, { recursive: true, mode: 0o700 });
     this.file = join(directory, 'workspace.json');
     try { this.data = JSON.parse(readFileSync(this.file, 'utf8')); }
