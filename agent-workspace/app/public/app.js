@@ -26,8 +26,10 @@ async function loadRuntime(){
     const data=await api('/runtime');$('connection').textContent=`OpenCode ${data.health.version||''} · 연결됨`;
     const models=data.providers.flatMap(p=>p.models.map(m=>({id:JSON.stringify({providerID:p.id,modelID:m.id}),name:`${p.name||p.id} / ${m.name}`,provider:p.id})));
     options('model',models,m=>m.name);
+    $('model-help').textContent=models.length ? `이 서버에서 연결된 ${data.providers.length}개 공급자의 모델입니다. 다른 기기의 인증은 자동 이전되지 않습니다.` : '이 서버에 연결된 모델이 없습니다. 서버의 기존 공급자 인증을 확인한 뒤 새로고침하세요.';
+    $('template-form').querySelector('button[type=submit]').disabled=!models.length;
     const preferred=models.find(m=>m.provider==='deepseek'&&JSON.parse(m.id).modelID.includes('flash'));if(preferred)$('model').value=preferred.id;
-  }catch(error){$('connection').textContent='OpenCode 연결 확인 필요';notice(error);}
+  }catch(error){$('connection').textContent='OpenCode 연결 확인 필요';$('model-help').textContent='모델 목록을 가져오지 못했습니다. 서버 연결을 확인하세요.';$('template-form').querySelector('button[type=submit]').disabled=true;notice(error);}
 }
 function sidebar(open){$('sidebar').classList.toggle('open',open);$('sidebar-backdrop').hidden=!open;}
 function dialog(id){document.querySelectorAll('dialog[open]').forEach(d=>d.close());notice(null);$(id).showModal();sidebar(false);}
@@ -96,7 +98,7 @@ function renderTask(task){
 async function refresh(){if(!authenticated||polling)return;polling=true;try{state=await api('/state');if(selected&&!state.tasks.some(t=>t.id===selected))selected=null;renderState();if(selected){const id=selected,task=await api(`/tasks/${id}`);if(id===selected)renderTask(task);}}catch(e){notice(e);}finally{polling=false;}}
 async function action(button,operation){button.disabled=true;notice(null);try{await operation();await refresh();}catch(e){notice(e);}finally{button.disabled=false;}}
 function form(id,operation){$(id).onsubmit=e=>{e.preventDefault();void action($(id).querySelector('button[type=submit]'),operation);};}
-async function open(){await api('/state');authenticated=true;$('login').hidden=true;$('app').hidden=false;await loadRuntime();await refresh();}
+async function open(){await api('/state');const system=await api('/system');$('server-location').textContent=system.access==='tailscale'?'맥미니 · 원격 연결':'맥미니 · 로컬 연결';$('server-location').title=system.publicOrigin||'원격 접속 설정 전';authenticated=true;$('login').hidden=true;$('app').hidden=false;await loadRuntime();await refresh();}
 $('login-form').onsubmit=async e=>{e.preventDefault();$('login-error').textContent='';try{await api('/login',{password:$('password').value});$('password').value='';await open();}catch(error){$('login-error').textContent=error.message;}};
 for(const id of ['new-task','overview-new'])$(id).onclick=()=>dialog('task-dialog');
 for(const id of ['open-project','setup-project','task-add-project'])$(id).onclick=()=>dialog('project-dialog');
@@ -107,7 +109,7 @@ $('open-sidebar').onclick=()=>sidebar(true);for(const id of ['close-sidebar','si
 $('toggle-inspector').onclick=()=>{if(matchMedia('(max-width:1100px)').matches)$('inspector').classList.toggle('open');else document.querySelector('.task-body').classList.toggle('hide-inspector');};
 $('close-inspector').onclick=()=>$('inspector').classList.remove('open');
 form('project-form',async()=>{await api('/projects',{directory:$('project-path').value});$('project-path').value='';$('project-dialog').close();});
-form('template-form',async()=>{await api('/templates',{name:$('template-name').value,model:JSON.parse($('model').value),prompt:$('template-prompt').value,memory:$('template-memory').value});$('template-name').value='';$('template-dialog').close();});
+form('template-form',async()=>{if(!$('model').value)throw new Error('연결된 모델을 먼저 선택하세요.');await api('/templates',{name:$('template-name').value,model:JSON.parse($('model').value),prompt:$('template-prompt').value,memory:$('template-memory').value});$('template-name').value='';$('template-dialog').close();});
 form('task-form',async()=>{const task=await api('/tasks',{projectID:$('project').value,templateID:$('template').value,title:$('task-title').value});$('task-title').value='';$('task-dialog').close();selectTask(task.id);});
 form('message-form',async()=>{if(!selected)return;const value=$('message').value,id=selected;if(!messageAttempt||messageAttempt.text!==value||messageAttempt.task!==id)messageAttempt={text:value,requestID:crypto.randomUUID(),task:id};await api(`/tasks/${id}/messages`,messageAttempt);drafts.delete(id);if(selected===id)$('message').value='';messageAttempt=null;});
 $('message').onkeydown=e=>{if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){e.preventDefault();$('message-form').requestSubmit();}};
