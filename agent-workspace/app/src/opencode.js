@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { openSync, closeSync } from 'node:fs';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
+import { findOpenCode } from './runtime-config.js';
 
 export class RuntimeError extends Error {
   constructor(status, operation) {
@@ -95,9 +96,10 @@ export async function launchRuntime(dataDirectory, env = process.env) {
     await runtime.health();
     return { runtime, close: async () => {} };
   }
+  const binary = findOpenCode(env);
   const password = randomBytes(32).toString('base64url');
   const log = openSync(join(dataDirectory, 'opencode.log'), 'a', 0o600);
-  const child = spawn(env.OPENCODE_BIN || 'opencode', ['serve', '--hostname', '127.0.0.1', '--port', '0'], {
+  const child = spawn(binary, ['serve', '--hostname', '127.0.0.1', '--port', '0'], {
     cwd: dataDirectory,
     env: { ...env, OPENCODE_SERVER_PASSWORD: password, OPENCODE_SERVER_USERNAME: 'opencode' },
     stdio: ['ignore', 'pipe', log],
