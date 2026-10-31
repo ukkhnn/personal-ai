@@ -2,9 +2,9 @@
 
 개인 AI 비서의 기반 인프라를 구축하는 `personal-ai`의 하위 프로젝트다.
 
-현재 단계: **Mac mini 독립 실행·HTTPS 인증 구현 / 공급자 인증·원격 활성화 대기**.
+현재 단계: **Mac mini 중앙 앱의 실제 DeepSeek 작업 검증 완료 / 원격 활성화·병행 작업 검증 대기**.
 
-구현·검증 현황은 작업 브랜치 `codex/mac-mini-central`의 [`0ee9c4d`](https://github.com/ukkhnn/personal-ai/commit/0ee9c4d1fb0eb5f101374c948c1ea6421ba03280) 기준이다. `main`에는 공통 문서만 반영했으며, 앱 구현의 최종 병합은 별도 승인 후 진행한다.
+구현·검증 현황은 작업 브랜치 `codex/mac-mini-central`의 [`1c0599d`](https://github.com/ukkhnn/personal-ai/commit/1c0599d9d21edc0b9817397c5f83e73266d4efdc) 기준이다. `main`에는 공통 문서만 반영했으며, 앱 구현의 최종 병합은 별도 승인 후 진행한다.
 
 목표는 사용자가 실제 개발에 지속적으로 사용할 수 있는 완성품이다. 첫 버전도 정한 범위 안에서 작업 완료·오류 처리·데이터 보존·복구가 이어져야 하며, 모든 주요 설계에서 확장 가능성을 검토한다.
 
@@ -39,4 +39,4 @@
 
 최초 기획서는 원문으로 유지한다. 이후 확정한 변경사항은 현재 요구사항과 의사결정 기록에 반영하며, 충돌하는 항목은 현재 요구사항의 확정 내용을 우선 적용한다. 새로운 기능은 요구사항에 등록한 뒤 개발하고, 주요 기술 결정은 근거와 함께 기록한다. 후보 기술이나 오픈소스의 채택 여부는 아직 확정하지 않는다.
 
-첫 단계는 개발 작업 흐름의 상세 설계와 OpenCode를 이용한 세션·승인·worktree·하네스 설정 검증이다. OpenCode 최종 채택은 검증 결과를 보고 결정한다. 현재 구현·실행·검증 범위는 [app/README.md](https://github.com/ukkhnn/personal-ai/blob/0ee9c4d1fb0eb5f101374c948c1ea6421ba03280/agent-workspace/app/README.md), 맥미니 인계 절차는 [app/HANDOFF.md](https://github.com/ukkhnn/personal-ai/blob/0ee9c4d1fb0eb5f101374c948c1ea6421ba03280/agent-workspace/app/HANDOFF.md)에 기록했다. 2026-10-29 맥미니의 독립 실행 저장소와 로컬 서버를 확인하고 자동 테스트 27개를 통과했다. HTTPS 인증·운영 설정 생성은 구현했으며, 실제 원격 접속과 DeepSeek 실행은 인증·시스템 변경 승인 후 확인한다. [운영 안내](https://github.com/ukkhnn/personal-ai/blob/0ee9c4d1fb0eb5f101374c948c1ea6421ba03280/agent-workspace/app/OPERATIONS.md)를 참고한다. 전체 첫 버전의 완료 기준은 아직 충족하지 않았다.
+첫 단계는 개발 작업 흐름의 상세 설계와 OpenCode를 이용한 세션·승인·worktree·하네스 설정 검증이다. OpenCode 최종 채택은 검증 결과를 보고 결정한다. 현재 구현·실행·검증 범위는 [app/README.md](https://github.com/ukkhnn/personal-ai/blob/1c0599d9d21edc0b9817397c5f83e73266d4efdc/agent-workspace/app/README.md), 맥미니 인계 절차는 [app/HANDOFF.md](https://github.com/ukkhnn/personal-ai/blob/1c0599d9d21edc0b9817397c5f83e73266d4efdc/agent-workspace/app/HANDOFF.md)에 기록했다. 2026-10-29 맥미니의 독립 실행 저장소와 로컬 서버를 확인하고 자동 테스트 27개를 통과했다. 2026-10-31에는 맥미니 중앙 앱에서 OpenCode 1.18.18·`deepseek/deepseek-flash`로 파일 생성·추적 파일 수정·명령 승인·후속 지시·완료 작업 재조회를 확인했다. HTTPS 인증·운영 설정 생성은 구현했으며, Tailscale·자동 시작 적용과 실제 맥북·모바일 접속, 병행 작업 검증은 남아 있다. [운영 안내](https://github.com/ukkhnn/personal-ai/blob/1c0599d9d21edc0b9817397c5f83e73266d4efdc/agent-workspace/app/OPERATIONS.md)를 참고한다. 전체 첫 버전의 완료 기준은 아직 충족하지 않았다.

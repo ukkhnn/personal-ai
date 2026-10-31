@@ -1,6 +1,6 @@
 # 아키텍처
 
-갱신일: 2026-10-29. 상태: **자체 앱·맥미니 로컬 실행·HTTPS 인증 경계 구현 / 실제 원격 통합 검증 대기**.
+갱신일: 2026-10-31. 상태: **자체 앱·맥미니 로컬 실행·HTTPS 인증 경계 구현 / 실제 원격 통합 검증 대기**.
 
 [현재 요구사항](REQUIREMENTS.md)과 [의사결정 기록](DECISIONS.md)을 기준으로 한다. [PRD §5](PRD.md)는 최초 개념 초안이다.
 
@@ -40,7 +40,7 @@ Mac mini
 
 첫 버전은 프롬프트·모델·스킬·도구·메모리·권한 설정과 템플릿 재사용을 제공한다. 사용자 정의 작업 순서 구성은 후속 확장이다. [하네스 템플릿 명세](specs/harness-templates.md)를 참고한다.
 
-첫 실행 엔진 검증 대상은 OpenCode다 (DEC-010). 실제 기능·권한·상태 복원·설정 적용을 검증한 뒤 채택 여부를 결정한다. 2026-10-28 OpenCode 1.18.18과 기존 DeepSeek Flash 연결로 자체 서비스의 작업·승인·대기열·파일 변경 흐름을 확인했다. 현재 구현은 [app/README.md](https://github.com/ukkhnn/personal-ai/blob/0ee9c4d1fb0eb5f101374c948c1ea6421ba03280/agent-workspace/app/README.md)를 참고한다. 전체 설정 범위와 맥미니 운영 검증은 남아 있다.
+첫 실행 엔진 검증 대상은 OpenCode다 (DEC-010). 실제 기능·권한·상태 복원·설정 적용을 검증한 뒤 채택 여부를 결정한다. 2026-10-28 맥북의 첫 실행 검증에 이어 2026-10-31 맥미니 중앙 앱에서도 OpenCode 1.18.18·`deepseek/deepseek-flash`로 단일 작업의 파일 생성·수정, 명령 승인, 후속 지시, 독립된 로컬 로그인 클라이언트의 requestID 중복 방지·완료 작업 재조회를 확인했다. 현재 구현은 [app/README.md](https://github.com/ukkhnn/personal-ai/blob/1c0599d9d21edc0b9817397c5f83e73266d4efdc/agent-workspace/app/README.md)를 참고한다. 전체 설정 범위와 맥미니 운영 검증은 남아 있다.
 
 ## 실행 연결 구조 제안 — 검증 필요
 
@@ -120,4 +120,4 @@ MacBook / 모바일 (같은 tailnet, 각각 앱 로그인)
 
 `src/http-security.js`는 프록시와 세션 경계를, `src/runtime-config.js`는 기존/고정 엔진 탐색을 담당한다. 엔진 규격은 `src/opencode.js`, 작업·대기열은 `src/workspace.js`, Git·경로 검증은 `src/git.js`와 `src/paths.js`에 유지한다. 복원한 저장 경로도 Git 공용 경로까지 다시 검사한다. iCloud의 `.git`을 공유하는 로컬 worktree를 실행 격리로 인정하지 않는다.
 
-LaunchAgent는 source 폴더 밖 환경 파일을 읽어 로그인 이후 프로세스를 시작하도록 생성한다. 자동 시작 등록·Tailscale 설정·수면 정책은 앱 코드와 별도 운영 변경이다. 서버 재시작은 저장 기록과 인증 세션에 다른 영향을 준다. 작업 기록은 복원하지만 브라우저 인증 세션은 만료하며 엔진 실행의 무손실 재개를 보장하지 않는다. [운영 안내](https://github.com/ukkhnn/personal-ai/blob/0ee9c4d1fb0eb5f101374c948c1ea6421ba03280/agent-workspace/app/OPERATIONS.md)에 실행·검증·되돌리기와 현재 한계를 기록했다.
+LaunchAgent는 source 폴더 밖 환경 파일을 읽어 로그인 이후 프로세스를 시작하도록 생성한다. 자동 시작 등록·Tailscale 설정·수면 정책은 앱 코드와 별도 운영 변경이다. 서버 재시작은 저장 기록과 인증 세션에 다른 영향을 준다. 작업 기록은 복원하지만 브라우저 인증 세션은 만료하며 엔진 실행의 무손실 재개를 보장하지 않는다. [운영 안내](https://github.com/ukkhnn/personal-ai/blob/1c0599d9d21edc0b9817397c5f83e73266d4efdc/agent-workspace/app/OPERATIONS.md)에 실행·검증·되돌리기와 현재 한계를 기록했다.
