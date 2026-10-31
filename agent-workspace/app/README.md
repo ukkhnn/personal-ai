@@ -4,13 +4,13 @@
 
 ## 시작
 
-실행 저장소·상태·worktree는 iCloud 밖에 둔다. 맥미니 전용 저장소는 `~/Developer/personal-ai`다. 공유 폴더의 Git 작업 폴더를 함께 변경하지 않는다. 2026-10-31 확인한 중앙 앱은 `http://127.0.0.1:4310`에서 실행 중이므로 기존 서버에 접속한다. 아래 시작 명령은 서버가 실행 중이지 않을 때만 사용한다.
+실행 저장소·상태·worktree는 iCloud 밖에 둔다. 맥미니 전용 저장소는 `~/Developer/personal-ai`다. 공유 폴더의 Git 작업 폴더를 함께 변경하지 않는다. 2026-10-31 사용자 승인 후 중앙 앱을 LaunchAgent 서비스로 전환했다. Tailscale에 연결한 기기에서는 `https://ukkhnns-macmini.tail2e5038.ts.net`으로 접속하고 앱에 로그인한다. 맥미니의 로컬 주소는 `http://127.0.0.1:4310`이며 **`npm start`로 중복 실행하지 않는다.**
 
 ```sh
-cd ~/Developer/personal-ai/agent-workspace/app
-npm run doctor
-npm start
+launchctl print "gui/$(id -u)/local.personal-ai.workspace"
 ```
+
+등록된 서비스가 멈춰 있을 때는 `launchctl kickstart "gui/$(id -u)/local.personal-ai.workspace"`로 다시 시작한다. 정상 종료·재시작 및 수동 실행 전 서비스 해제 절차는 [OPERATIONS.md](OPERATIONS.md)를 따른다.
 
 Node.js 22.19 이상이 필요하다. 맥미니 확인 버전은 Node 26.7.0 / OpenCode 1.18.18이다. 엔진은 `OPENCODE_BIN` → PATH → `~/.opencode/bin/opencode` → `~/.local/bin/opencode` → 프로젝트 내부 고정 버전 순으로 찾는다. 기존 설치가 없을 때만 다음 명령으로 **프로젝트 내부** 엔진을 설치한다. 전역 설치나 기존 공급자 설정 변경은 수행하지 않는다.
 
@@ -41,7 +41,7 @@ npm run setup:runtime
 npm run prepare:macos -- --output "$HOME/.local/share/personal-ai/operations/review-new" --origin https://your-device.your-tailnet.ts.net
 ```
 
-실제 Tailscale 연결·HTTPS Serve 활성화·LaunchAgent 등록은 사용자 승인 후 [운영 안내](OPERATIONS.md)에 따라 적용한다. 인증·환경 파일은 저장소 밖 `~/.local/share/personal-ai/server.env`를 사용할 수 있다.
+2026-10-31 사용자 승인 후 Tailscale 연결·HTTPS Serve·LaunchAgent 등록을 적용했다. Tailscale은 Running·online이고 MagicDNS가 켜져 있다. HTTPS 443 루트에서 로컬 앱으로 연결하며 Funnel은 사용하지 않는다. 기존 tailnet 접근 정책은 보존하고 별도 앱 로그인을 유지한다. 맥미니에서 실제 TLS 인증서 검증을 켠 HTTPS 로그인·보안 쿠키·HSTS·동일 완료 작업 조회·잘못된 Origin 거부·로그아웃을 확인했다. 같은 맥미니의 실제 브라우저에서도 HTTPS 로그인·완료 작업·대화·README diff·새 파일 목록을 확인했다. 물리 맥북·모바일 접속은 별도 검증이 남아 있다. 현재 서비스는 저장소 밖 `~/.local/share/personal-ai/server.env`의 경로·Origin 설정을 읽고, API 키는 기존 OpenCode 사용자 인증을 사용한다. 적용 기록은 `~/.local/share/personal-ai/operations/2026-10-31-activation/`에 있다. 자세한 상태와 운영 명령은 [운영 안내](OPERATIONS.md)를 따른다.
 
 ## 구현 경계
 
@@ -77,13 +77,13 @@ LIVE_MODEL_TEST=1 LIVE_PROVIDER_ID=deepseek LIVE_MODEL_ID=deepseek-flash node sc
 # 연결된 실제 모델 ID를 사용한다. 필요할 때만 LIVE_PARALLEL_TEST=1 추가.
 ```
 
-- 맥북의 2026-10-28 검증에 이어 맥미니 중앙 앱의 실제 DeepSeek 단일 작업을 2026-10-31 확인했다. Tailscale·LaunchAgent 적용, 물리 기기 전환·실제 작업 병행은 남아 있다.
+- 맥북의 2026-10-28 검증에 이어 맥미니 중앙 앱의 실제 DeepSeek 단일 작업을 2026-10-31 확인했다. Tailscale 연결·HTTPS Serve·LaunchAgent를 적용하고 맥미니에서 실제 HTTPS를 검증했다. 물리 기기 전환·실제 작업 병행은 남아 있다.
 - 모델·프롬프트·직접 입력 메모리를 지원한다. 스킬·도구·권한 편집, 템플릿 수정·삭제는 남아 있다.
 - 모든 셸 명령은 승인 대상이다. worktree는 OS 보안 격리가 아니다. 프로젝트 의존성 자동 설치의 판별·집행을 구현하기 전까지 승인 범위를 완화하지 않는다.
 - 제품 내부 자동 커밋·push·최종 병합, 작업 정리, 백업·복원은 구현 전이다. 이번 개발 브랜치를 커밋·push하는 것과 제품 기능 구현은 다르다.
 - 새 파일은 목록만 제공한다. 전체 파일 탐색·새 파일 내용·미디어 결과물 조회는 남아 있다.
 - 재시작 시 저장 기록과 대기열을 복원한다. 전달이 모호한 지시는 자동 재전송하지 않는다. 엔진 세션의 무손실 복구·기기 간 이전을 보장하지 않는다.
-- LaunchAgent 생성은 구현했지만 실제 등록·재부팅 검증은 별도 승인·확인이 필요하다. macOS 로그인 전 실행, 잠자기 방지, FileVault 해제는 포함하지 않는다.
+- LaunchAgent 설치·bootstrap과 정상 종료 후 서비스 재시작을 확인했다. 이전 앱 로그인 만료·새 로그인 후 기록 및 DeepSeek 연결 보존도 확인했다. 실제 macOS 로그아웃·재로그인·재부팅은 미검증이며, 로그인 전 실행·잠자기 방지·FileVault 해제는 포함하지 않는다.
 
 ## UI 참고
 

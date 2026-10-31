@@ -14,6 +14,9 @@
 - 별도 임시 모의 엔진으로 브라우저 로그인 → 프로젝트 → 템플릿 → 작업 → 승인 → 추적 파일 diff 확인. 390×844 모바일 크기에서 가로 넘침 없음
 - 실제 모델 smoke의 명시적 공급자 선택, 두 인증 클라이언트, 선택적 병행 작업, timeout·결과 기록 보완
 - 2026-10-31 중앙 앱의 실제 DeepSeek 작업 1개·지시 2개 완료, 명령 승인·파일 변경·중복 방지·새 로그인 재접속 확인
+- 사용자 승인 후 Tailscale 연결·MagicDNS 상태 확인, LaunchAgent 설치·bootstrap으로 중앙 앱 전환
+- 서비스 정상 종료·재시작 후 DeepSeek 연결·완료 작업 보존 확인, 이전 로그인 만료(401)·새 로그인 통과
+- Tailscale HTTPS Serve 적용 후 실제 TLS·로그인·보안 쿠키·출처 거부·로그아웃·동일 완료 작업 조회 확인; Funnel 비활성 유지
 
 ## 중앙 앱 실제 DeepSeek 검증 — 2026-10-31
 
@@ -27,28 +30,37 @@
 
 작업 제목은 `DeepSeek 실제 연결 검증 · 2026-10-31`, task ID는 `d0ac5c28-5801-4596-bb96-111bbfe832ec`다. 결과 기록은 `/Users/ukkhnn/.local/share/personal-ai/verification/deepseek-2026-10-31-Ahhp8c/report.json`에 있다. 같은 폴더의 `fixture`는 중앙 앱에 등록된 원본 저장소다. **이 fixture와 작업 worktree를 임시 파일처럼 삭제하지 않는다.** 등록된 저장소가 사라지면 앱 재시작 시 경로 재검증이 실패한다. 정리 기능이 구현되기 전까지 상태와 함께 유지한다.
 
+## 운영 적용 상태 — 2026-10-31
+
+사용자가 Tailscale 연결·HTTPS·로그인 후 자동 시작을 승인했다. 관리자 로그인 후 HTTPS를 활성화하고, 기본 체크된 Funnel 선택은 명시적으로 해제했다. Tailscale은 Running·online이며 MagicDNS·인증서 도메인을 확인했다. 접속 주소는 `https://ukkhnns-macmini.tail2e5038.ts.net`이고, Serve의 HTTPS 443 루트는 `http://127.0.0.1:4310` 한 곳으로 연결한다. Funnel은 활성화하지 않았다. 앱은 계속 `127.0.0.1:4310`만 수신한다. 기존 tailnet 접근 정책을 보존했으며 특정 기기 전용으로 좁힌 것은 아니다. 별도 앱 로그인을 유지한다.
+
+`~/Library/LaunchAgents/local.personal-ai.workspace.plist`를 설치하고 bootstrap해 중앙 앱을 실행했다. 고정된 실행 경로와 안정적인 PATH, 저장소 밖 `~/.local/share/personal-ai/server.env`를 사용한다. 환경 파일에는 경로·Origin 설정만 있고 API 키는 넣지 않았다. 적용 plist·변경 전 상태·검증 기록은 `~/.local/share/personal-ai/operations/2026-10-31-activation/`의 plist, `before.json`, `verification.json`에 보존했다. 10월 29일 준비안은 이전 기록으로 남긴다.
+
+맥미니에서 실제 TLS 인증서 검증을 켜고 HTTPS 첫 화면 200·HSTS, 미인증 401, 로그인과 Secure/HttpOnly/SameSite=Strict `__Host-workspace` 쿠키, Tailscale 접속 분류, 기존 완료 작업·DeepSeek 목록을 확인했다. 잘못된 Origin은 403, 로그아웃한 쿠키는 401로 거부했다. 실제 브라우저에서도 HTTPS 로그인 후 기존 완료 작업·대화 기록·README diff·`smoke.txt` 목록과 화면의 “맥미니·원격 연결” 표시를 확인했다. 이 검증도 같은 맥미니에서 수행했으며 별도 물리 원격 기기 검증은 아니다.
+
+SIGTERM 정상 종료 후 `launchctl kickstart`로 다시 실행해 OpenCode health, DeepSeek 연결과 기존 완료 작업 보존을 확인했다. 이전 앱 로그인은 401로 만료됐고 새 로그인에서 기록을 확인했다. 실제 macOS 로그아웃·재로그인 또는 재부팅 시험은 하지 않았다.
+
 ## 아직 완료하지 못한 확인
 
-위 검증은 실제 모델과 중앙 앱을 사용했지만 클라이언트는 모두 맥미니의 로컬 HTTP 연결이었다. 물리 맥북·모바일의 HTTPS 접속, 실제 두 작업 병행, 서버 자동 시작·재부팅·잠자기 검증은 남아 있다.
-
-2026-10-31 다시 확인한 Tailscale은 설치되어 있지만 Stopped·offline 상태다. 캐시된 주소는 `https://ukkhnns-macmini.tail2e5038.ts.net`이며 Serve는 비어 있고 Funnel은 꺼져 있다. **이 URL을 접속 가능한 완료 주소로 취급하지 않는다.** 사용자 정책에 따라 연결 활성화·HTTPS·자동 시작을 승인 대기로 남겼다. 설정안은 `~/.local/share/personal-ai/operations/2026-10-29-final/`에 있고 plist 재검사를 통과했다. 해당 LaunchAgent는 설치하지 않았으며 외부 환경 파일 `server.env`도 아직 없다.
+실제 모델 작업은 맥미니의 로컬 HTTP 클라이언트로, 실제 HTTPS는 같은 맥미니에서 확인했다. 물리 맥북·모바일 접속, 실제 두 작업 병행, macOS 로그인 후 시작·재부팅·잠자기 검증은 남아 있다.
 
 ## 다음 실행
 
-현재 중앙 앱이 실행 중이므로 `http://127.0.0.1:4310`에 접속해 기존 서버를 이용한다. 로그인 암호는 `~/.local/share/personal-ai/access-code.txt`에서 로컬로 확인한다. 앱에는 전용 personal-ai 프로젝트와 위 실제 검증 프로젝트·템플릿·완료 작업이 보존되어 있다. 별도 임시 데이터에서 진행했던 2026-10-29 모의 검증과 구분한다.
-
-서버가 실행 중이지 않을 때만 다음 명령으로 시작한다. 동일 데이터 폴더의 중복 서버는 시작할 수 없다.
+현재 중앙 앱은 LaunchAgent가 관리한다. Tailscale에 연결한 기기에서 `https://ukkhnns-macmini.tail2e5038.ts.net`에 접속해 별도로 앱에 로그인한다. 맥미니의 로컬 확인에는 `http://127.0.0.1:4310`을 사용할 수 있으며 **`npm start`로 두 번째 서버를 실행하지 않는다.** 로그인 암호는 `~/.local/share/personal-ai/access-code.txt`에서 로컬로 확인한다. 앱에는 전용 personal-ai 프로젝트와 실제 검증 프로젝트·템플릿·완료 작업이 보존되어 있다.
 
 ```sh
-cd ~/Developer/personal-ai/agent-workspace/app
-npm run doctor
-npm start
+launchctl print "gui/$(id -u)/local.personal-ai.workspace"
+```
+
+서비스가 등록된 채 정상 종료되어 멈춘 경우에는 다음 명령으로 다시 시작한다. 실행 중인 서비스를 안전하게 재시작하는 절차와 완전히 해제하는 방법은 [OPERATIONS.md](OPERATIONS.md)를 따른다.
+
+```sh
+launchctl kickstart "gui/$(id -u)/local.personal-ai.workspace"
 ```
 
 1. 중앙 앱의 공급자 목록과 보존한 실제 검증 작업을 확인한다. 인증 정보를 다시 입력하거나 검증 자료를 삭제할 필요는 없다.
-2. 사용자 승인 범위에 따라 [OPERATIONS.md](OPERATIONS.md)의 준비된 Tailscale·HTTPS·LaunchAgent 설정을 적용한다. 연결 후 실제 DNS 이름을 다시 확인한다.
-3. 맥북·모바일에서 같은 작업을 조회·추가 지시·승인·재접속하는 실제 기기 검증을 수행한다.
-4. 실제 두 작업 병행 및 재부팅·잠자기 복구 검증을 별도로 수행한다. 모델 검증을 반복할 때는 실제 ID를 지정한 smoke를 사용하며, 추가 호출 비용이 발생할 수 있다.
+2. 맥북·모바일을 같은 tailnet에 연결하고 HTTPS에서 같은 작업을 조회·추가 지시·승인·재접속하는 실제 기기 검증을 수행한다.
+3. 실제 두 작업 병행 및 macOS 로그아웃·재로그인·재부팅·잠자기 복구를 별도로 검증한다. 모델 검증 반복에는 추가 호출 비용이 발생할 수 있다.
 
 ## 이어지는 제품 개발
 
