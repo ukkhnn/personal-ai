@@ -1,6 +1,6 @@
 # Mac mini 중앙 운영
 
-작성·확인: 2026-10-29. 설정 생성·검증과 실제 시스템 활성화를 구분한다.
+작성: 2026-10-29. 중앙 앱 실제 모델·원격 설정 상태 재확인: 2026-10-31. 설정 생성·검증과 실제 시스템 활성화를 구분한다.
 
 ## 실제 위치와 현재 상태
 
@@ -12,16 +12,19 @@
 | 상태·worktree·로그 | `~/.local/share/personal-ai` |
 | 접속 암호 | 위 폴더의 `access-code.txt`, 600 권한; 값은 기록하지 않음 |
 | OpenCode | 기존 설치를 찾지 못해 프로젝트 내부 1.18.18 사용. 공급자 인증은 별개 |
-| 공급자 | 엔진 기본 `opencode` 목록만 확인, 기존 DeepSeek 인증 미확인 |
-| 수동 앱 주소 | `http://127.0.0.1:4310` |
+| 공급자 | 사용자 OpenCode 인증 후 `deepseek` / `deepseek-flash`(DeepSeek V4.1 Flash 1017) 실제 호출 확인 |
+| 수동 앱 주소 | `http://127.0.0.1:4310`, 기존 중앙 앱 실행 중 |
 | Tailscale 후보 주소 | `https://ukkhnns-macmini.tail2e5038.ts.net`; 캐시된 장치 이름이며 활성화 후 재확인 필요 |
-| Tailscale | 설치됨(1.96.5), Stopped, Serve 설정 없음, Funnel 꺼짐 |
+| Tailscale | 2026-10-31 재확인: 설치됨(1.96.5), Stopped·offline, Serve 설정 없음, Funnel 꺼짐 |
 | 최종 설정안 | `~/.local/share/personal-ai/operations/2026-10-29-final/` |
-| 자동 시작 | LaunchAgent 파일 검사 완료, 실제 등록하지 않음 |
+| 자동 시작 | 준비안 plist 재검사 완료; `~/Library/LaunchAgents/local.personal-ai.workspace.plist` 미설치 |
+| 외부 환경 파일 | `~/.local/share/personal-ai/server.env` 아직 없음; 현재 OpenCode 사용자 인증 사용 |
 
 실행 경로는 심볼릭 링크의 실제 대상과 Git 공용 저장소까지 검사한다. iCloud 및 `Library/CloudStorage` 아래 경로는 거부한다. 임의 동기화 도구의 모든 사용자 지정 경로를 자동 탐지하는 기능은 아니므로 운영자는 다른 동기화 폴더도 실행 위치에서 제외해야 한다.
 
 ## 수동 시작과 인증 연결
+
+현재 중앙 앱은 실행 중이므로 기존 `http://127.0.0.1:4310`에 접속한다. 아래 명령은 서버가 실행 중이지 않을 때만 사용한다.
 
 ```sh
 cd ~/Developer/personal-ai/agent-workspace/app
@@ -29,7 +32,7 @@ npm run doctor
 npm start
 ```
 
-접속 암호는 로컬 파일에서 확인하며 키·암호를 로그나 Git에 남기지 않는다. 기본 실행은 로컬 HTTP만 제공한다. 기존 공급자 설정이 이 맥미니에 없다면 맥북의 인증된 OpenCode 설정을 사용자가 안전한 경로로 준비하거나 맥미니의 OpenCode에서 직접 인증한다. 맥북의 실행 상태·DB·작업 폴더를 통째로 복사하는 것으로 대체하지 않는다.
+접속 암호는 로컬 파일에서 확인하며 키·암호를 로그나 Git에 남기지 않는다. 기본 실행은 로컬 HTTP만 제공한다. 2026-10-31 사용자가 맥미니의 OpenCode `auth login`에 직접 입력해 DeepSeek를 연결했고, 앱 재시작으로 공급자 목록을 갱신했다. 인증 값은 출력하거나 저장소에 기록하지 않았다. 현재 인증을 그대로 사용하며 맥북의 실행 상태·DB·작업 폴더를 복사해 이전한 것은 아니다.
 
 별도 위치의 기존 설정은 `OPENCODE_CONFIG`, `OPENCODE_CONFIG_DIR`, `XDG_CONFIG_HOME`, `XDG_DATA_HOME` 등 해당 설정 방식에 맞춰 저장소 밖 private 환경 파일에 연결한다. 기존 `auth.json`이나 인라인 키를 앱 저장소에 복제하지 않는다. 연결 후 `/api/runtime`은 인증된 사용자에게 공급자·모델 이름만 반환한다. 템플릿 생성과 live smoke에는 그 목록의 실제 ID를 사용한다.
 
@@ -38,6 +41,17 @@ node --env-file-if-exists="$HOME/.local/share/personal-ai/server.env" src/main.j
 ```
 
 기존 foreground 서버와 같은 데이터 폴더로 두 번째 서버를 실행하면 거부한다. 재시작 전 활성 작업을 확인하고 명시적으로 중단한다. 종료는 시작한 터미널의 Ctrl-C 또는 해당 앱 프로세스에 SIGTERM을 보내는 방법을 사용한다. 정상 종료는 상태를 저장하고 앱 전용 엔진을 닫는다. 임의의 다른 OpenCode 프로세스를 종료하지 않는다.
+
+## 중앙 앱 실제 검증과 자료 보존
+
+2026-10-31 OpenCode 1.18.18의 실제 `deepseek` / `deepseek-flash`로 중앙 앱 작업 1개·지시 2개를 완료했다. `smoke.txt`의 정확한 `hello-workspace\n` 생성, 추적 README 수정과 diff, `git diff --stat` 명령 1회 승인, 후속 읽기 답변을 확인했다. 독립 로컬 인증 HTTP 클라이언트 2개의 같은 requestID는 중복 전달되지 않았고, 세 번째 새 로그인에서도 동일 완료 작업을 조회했다. 실제 브라우저 재로그인 후에도 완료 작업의 README diff·`smoke.txt` 목록을 확인했다. 원본 검증 저장소는 변경되지 않았다.
+
+- 보존된 작업: `DeepSeek 실제 연결 검증 · 2026-10-31` / `d0ac5c28-5801-4596-bb96-111bbfe832ec`
+- 결과 기록: `/Users/ukkhnn/.local/share/personal-ai/verification/deepseek-2026-10-31-Ahhp8c/report.json`
+- 등록된 원본 저장소: `/Users/ukkhnn/.local/share/personal-ai/verification/deepseek-2026-10-31-Ahhp8c/fixture`
+- 작업 폴더: `/Users/ukkhnn/.local/share/personal-ai/worktrees/d0ac5c28-5801-4596-bb96-111bbfe832ec`
+
+프로젝트·검증 템플릿·작업·결과를 중앙 앱에 보존했다. 이 fixture는 임시 정리 대상이 아니다. 등록된 원본 저장소를 삭제하면 앱 재시작 때 경로 재검증이 실패하므로, 상태 데이터와 원본·worktree를 함께 유지한다. 이 검증은 실제 모델을 사용한 로컬 HTTP 검증이며 Tailscale 활성화·물리 기기·실제 병행 검증을 대신하지 않는다. 다음 단계는 기존 서버를 유지하면서 승인된 범위의 운영 설정을 적용하고 원격 동작을 확인하는 것이다.
 
 ## HTTPS·자동 시작 설정 준비
 
@@ -76,7 +90,7 @@ LaunchAgent는 사용자 로그인 이후 실행한다. 재부팅 후 사용자 
 
 ## 실제 기기 완료 기준
 
-아래는 아직 미검증이다. localhost의 모의 클라이언트 결과로 체크하지 않는다.
+아래는 아직 미검증이다. 2026-10-31 실제 DeepSeek 검증도 맥미니의 로컬 HTTP 클라이언트에서 수행했으므로 물리 기기의 완료 기준으로 체크하지 않는다.
 
 - [ ] 맥북·모바일이 같은 tailnet에서 HTTPS로 접속하고 각자 앱에 로그인
 - [ ] 동일 task ID·대화·진행·변경을 조회

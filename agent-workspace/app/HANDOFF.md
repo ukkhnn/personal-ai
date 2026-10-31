@@ -1,6 +1,6 @@
 # Mac mini 작업 인계
 
-갱신: 2026-10-29. 개발은 **iCloud 밖 `~/Developer/personal-ai`의 `codex/mac-mini-central`**에서 이어간다. 공유 원본은 확인 당시 `feat/opencode-workspace` / `a73d817`이며 미커밋 파일이 없었다. 원격 브랜치도 같은 커밋이었다. 공유 원본의 브랜치·파일·Git 설정을 이 작업에서 변경하지 않았다.
+갱신: 2026-10-31. 개발은 **iCloud 밖 `~/Developer/personal-ai`의 `codex/mac-mini-central`**에서 이어간다. 공유 원본은 확인 당시 `feat/opencode-workspace` / `a73d817`이며 미커밋 파일이 없었다. 원격 브랜치도 같은 커밋이었다. 공유 원본의 브랜치·파일·Git 설정을 이 작업에서 변경하지 않았다.
 
 ## 완료한 작업
 
@@ -13,14 +13,31 @@
 - 자동 테스트 27개 및 JavaScript 전체 구문 검사 통과. 중복 서버 시작 거부 확인
 - 별도 임시 모의 엔진으로 브라우저 로그인 → 프로젝트 → 템플릿 → 작업 → 승인 → 추적 파일 diff 확인. 390×844 모바일 크기에서 가로 넘침 없음
 - 실제 모델 smoke의 명시적 공급자 선택, 두 인증 클라이언트, 선택적 병행 작업, timeout·결과 기록 보완
+- 2026-10-31 중앙 앱의 실제 DeepSeek 작업 1개·지시 2개 완료, 명령 승인·파일 변경·중복 방지·새 로그인 재접속 확인
+
+## 중앙 앱 실제 DeepSeek 검증 — 2026-10-31
+
+사용자가 OpenCode `auth login`에 직접 인증 정보를 입력한 뒤 앱을 재시작해 공급자 목록을 갱신했다. 인증 값은 출력하거나 저장소에 기록하지 않았다. 중앙 앱 `http://127.0.0.1:4310`과 OpenCode 1.18.18에서 `deepseek` / `deepseek-flash`(목록 표시 이름: DeepSeek V4.1 Flash 1017)를 사용했다. 맥북의 과거 결과와 별개로 맥미니에서 실제 호출을 검증했다.
+
+- 작업 1개에서 첫 지시 1개와 후속 지시 1개를 순서대로 완료했다. `smoke.txt`에 정확한 `hello-workspace\n`을 생성하고 추적 중인 README를 수정했다.
+- 두 번째 로컬 인증 HTTP 클라이언트에서 정확한 `git diff --stat` 명령을 1회 승인했다. 후속 읽기 지시의 답변과 실제 파일 내용·추적 파일 diff를 확인했다.
+- 독립 인증 클라이언트 2개로 같은 requestID의 중복 전달 방지를 확인했다. 세 번째 클라이언트의 새 로그인에서도 같은 완료 작업을 조회했다.
+- 실제 브라우저에서도 다시 로그인해 완료 작업과 변경 사항을 열고 README diff·`smoke.txt` 목록을 확인했다.
+- 등록한 원본 검증 저장소는 변경되지 않았다. 중앙 앱에 프로젝트·검증 템플릿·작업·결과를 보존했다.
+
+작업 제목은 `DeepSeek 실제 연결 검증 · 2026-10-31`, task ID는 `d0ac5c28-5801-4596-bb96-111bbfe832ec`다. 결과 기록은 `/Users/ukkhnn/.local/share/personal-ai/verification/deepseek-2026-10-31-Ahhp8c/report.json`에 있다. 같은 폴더의 `fixture`는 중앙 앱에 등록된 원본 저장소다. **이 fixture와 작업 worktree를 임시 파일처럼 삭제하지 않는다.** 등록된 저장소가 사라지면 앱 재시작 시 경로 재검증이 실패한다. 정리 기능이 구현되기 전까지 상태와 함께 유지한다.
 
 ## 아직 완료하지 못한 확인
 
-맥미니에서 기존 DeepSeek 인증을 찾지 못했다. 실제 smoke를 실행했으나 공급자 선택 단계에서 중단되어 모델 요청은 전송하지 않았다. 실제 엔진에는 기본 `opencode` 공급자만 연결되어 있으며, 다른 무료 모델로 대신 검증하지 않았다. 맥북에서 2026-10-28 검증한 DeepSeek 호출 결과는 맥미니 검증 결과로 재사용하지 않는다. 기존 설정의 안전한 위치 확인 또는 사용자의 공급자 인증이 필요하다.
+위 검증은 실제 모델과 중앙 앱을 사용했지만 클라이언트는 모두 맥미니의 로컬 HTTP 연결이었다. 물리 맥북·모바일의 HTTPS 접속, 실제 두 작업 병행, 서버 자동 시작·재부팅·잠자기 검증은 남아 있다.
 
-Tailscale은 설치되어 있지만 Stopped 상태다. 캐시된 주소는 `https://ukkhnns-macmini.tail2e5038.ts.net`이며 Serve는 비어 있고 Funnel은 꺼져 있다. **이 URL을 접속 가능한 완료 주소로 취급하지 않는다.** 사용자 정책에 따라 연결 활성화·HTTPS·자동 시작을 승인 대기로 남겼다. 설정안은 `~/.local/share/personal-ai/operations/2026-10-29-final/`에 있고 plist 검사를 통과했다.
+2026-10-31 다시 확인한 Tailscale은 설치되어 있지만 Stopped·offline 상태다. 캐시된 주소는 `https://ukkhnns-macmini.tail2e5038.ts.net`이며 Serve는 비어 있고 Funnel은 꺼져 있다. **이 URL을 접속 가능한 완료 주소로 취급하지 않는다.** 사용자 정책에 따라 연결 활성화·HTTPS·자동 시작을 승인 대기로 남겼다. 설정안은 `~/.local/share/personal-ai/operations/2026-10-29-final/`에 있고 plist 재검사를 통과했다. 해당 LaunchAgent는 설치하지 않았으며 외부 환경 파일 `server.env`도 아직 없다.
 
 ## 다음 실행
+
+현재 중앙 앱이 실행 중이므로 `http://127.0.0.1:4310`에 접속해 기존 서버를 이용한다. 로그인 암호는 `~/.local/share/personal-ai/access-code.txt`에서 로컬로 확인한다. 앱에는 전용 personal-ai 프로젝트와 위 실제 검증 프로젝트·템플릿·완료 작업이 보존되어 있다. 별도 임시 데이터에서 진행했던 2026-10-29 모의 검증과 구분한다.
+
+서버가 실행 중이지 않을 때만 다음 명령으로 시작한다. 동일 데이터 폴더의 중복 서버는 시작할 수 없다.
 
 ```sh
 cd ~/Developer/personal-ai/agent-workspace/app
@@ -28,12 +45,10 @@ npm run doctor
 npm start
 ```
 
-현재 수동 프로세스가 살아 있으면 중복 시작 대신 `http://127.0.0.1:4310`으로 접속한다. 로그인 암호는 `~/.local/share/personal-ai/access-code.txt`에서 로컬로 확인한다. 현재 앱에는 전용 personal-ai 프로젝트가 연결되어 있다. 테스트용 프로젝트·템플릿·작업은 별도 임시 데이터에만 만들었다.
-
-1. 기존 DeepSeek 설정·인증 위치를 확인하고 엔진에서 연결된 모델을 확인한다. API 키를 대화·Git에 넣지 않는다.
-2. 실제 공급자 ID·모델 ID를 지정해 `LIVE_MODEL_TEST=1 LIVE_PROVIDER_ID=deepseek LIVE_MODEL_ID=<실제 ID> node scripts/smoke-live.js`를 실행한다. 병행 검증은 `LIVE_PARALLEL_TEST=1`을 더한다.
-3. 사용자 승인 범위에 따라 [OPERATIONS.md](OPERATIONS.md)의 준비된 Tailscale·HTTPS·LaunchAgent 설정을 적용한다. 연결 후 실제 DNS 이름을 다시 확인한다.
-4. 맥북·모바일에서 같은 작업을 조회·추가 지시·승인·재접속하는 실제 기기 검증을 수행한다.
+1. 중앙 앱의 공급자 목록과 보존한 실제 검증 작업을 확인한다. 인증 정보를 다시 입력하거나 검증 자료를 삭제할 필요는 없다.
+2. 사용자 승인 범위에 따라 [OPERATIONS.md](OPERATIONS.md)의 준비된 Tailscale·HTTPS·LaunchAgent 설정을 적용한다. 연결 후 실제 DNS 이름을 다시 확인한다.
+3. 맥북·모바일에서 같은 작업을 조회·추가 지시·승인·재접속하는 실제 기기 검증을 수행한다.
+4. 실제 두 작업 병행 및 재부팅·잠자기 복구 검증을 별도로 수행한다. 모델 검증을 반복할 때는 실제 ID를 지정한 smoke를 사용하며, 추가 호출 비용이 발생할 수 있다.
 
 ## 이어지는 제품 개발
 
