@@ -4,9 +4,32 @@
 
 현재 단계: **Mac mini 실제 DeepSeek·HTTPS·서버 재시작 검증 완료 / 물리 기기·병행 작업·OS 재부팅 검증 대기**.
 
-구현·검증 현황은 작업 브랜치 `codex/mac-mini-central`의 [`33b4146`](https://github.com/ukkhnn/personal-ai/commit/33b41462d115bacb30795b1babe71ff50d36a50d) 기준이다. `main`에는 공통 문서만 반영했으며, 앱 구현의 최종 병합은 별도 승인 후 진행한다.
+구현·검증 현황은 작업 브랜치 `codex/mac-mini-central`의 [`dbb7b6c`](https://github.com/ukkhnn/personal-ai/commit/dbb7b6cc9df7801a10565e45a90a2e368e26deb4) 기준이다. `main`에는 공통 문서만 반영했으며, 앱 구현의 최종 병합은 별도 승인 후 진행한다.
 
 목표는 사용자가 실제 개발에 지속적으로 사용할 수 있는 완성품이다. 첫 버전도 정한 범위 안에서 작업 완료·오류 처리·데이터 보존·복구가 이어져야 하며, 모든 주요 설계에서 확장 가능성을 검토한다.
+
+## 진행 요약 — 2026-10-31
+
+현재는 맥미니 중앙 서버에서 실제 DeepSeek 작업과 HTTPS 접속을 확인한 단계다. 전체 첫 제품 버전은 아직 완료하지 않았다.
+
+| 구분 | 진행된 부분 | 확인 범위·남은 사항 |
+|---|---|---|
+| 실행 위치 | iCloud 밖 맥미니 전용 저장소·상태·worktree 마련 | 공유 원본 보존. 맥북 실행 세션을 이전한 것은 아님 |
+| 개발 작업 흐름 | 프로젝트 등록, 작업별 브랜치·worktree, 대화·상태, 추가 지시 대기열·중복 방지, 별도 중단·이어가기, 명령 승인·질문 응답, 변경 목록·추적 파일 diff | 기본 구현 완료. 전체 파일·새 파일 내용·결과물 조회와 실제 병행 작업 검증은 남음 |
+| 실행 템플릿 | 모델·프롬프트·직접 입력 메모리 저장 | 스킬·도구·권한 설정, 템플릿 수정·삭제는 미구현 |
+| 실제 모델 연결 | OpenCode 1.18.18과 기존 DeepSeek 인증 사용 | 맥미니에서 실제 1개 작업·2개 지시·명령 승인 1회, 파일 생성·수정·후속 읽기·재로그인 확인 |
+| 원격 접속 | Tailscale HTTPS·별도 앱 로그인 적용, Funnel 비활성 | 맥미니 자체에서 실제 TLS·인증·기존 작업 조회 확인. 물리 맥북·모바일 통합 검증은 남음 |
+| 자동 시작·상태 보존 | LaunchAgent 등록·실행, 서비스 정상 종료 후 재시작 확인 | 완료 작업 보존·이전 로그인 만료 확인. 실제 OS 재로그인·재부팅·잠자기·진행 중 작업 복구는 미검증. 백업·복원은 미구현 |
+
+자동 테스트 27개와 모의 엔진의 브라우저·모바일 크기 검증은 2026-10-29에 통과했다. 2026-10-31의 실제 DeepSeek·HTTPS·서비스 재시작 검증과 구분해서 기록한다. 현재도 모든 셸 명령은 승인 대상이며, 제품 내부 의존성 자동 설치·자동 커밋·push·최종 병합 승인·작업 정리는 미구현이다.
+
+### 바로 다음 작업
+
+1. 맥북·모바일에서 같은 Tailscale 계정과 앱 암호로 접속해 같은 작업의 조회·추가 지시·승인·재접속을 확인한다.
+2. 실제 두 작업의 동시 실행·파일 격리와 OS 재로그인·재부팅·잠자기 후 동작을 검증한다.
+3. 스킬·도구·권한·템플릿 관리와 의존성 설치 승인 경계를 구현하고, Git 자동화·전체 결과물 조회·백업·정리를 이어간다.
+
+접속 주소와 서비스 관리 방법은 [운영 안내](https://github.com/ukkhnn/personal-ai/blob/dbb7b6cc9df7801a10565e45a90a2e368e26deb4/agent-workspace/app/OPERATIONS.md), 검증 근거와 작업 인계는 [HANDOFF.md](https://github.com/ukkhnn/personal-ai/blob/dbb7b6cc9df7801a10565e45a90a2e368e26deb4/agent-workspace/app/HANDOFF.md), 전체 미완료 범위는 [ROADMAP.md](ROADMAP.md)를 따른다. 작업 브랜치 커밋·push와 공통 문서의 `main` 반영은 진행했으며, 앱 구현의 최종 병합은 사용자 승인 대상으로 남아 있다.
 
 ## 범위
 
@@ -39,4 +62,4 @@
 
 최초 기획서는 원문으로 유지한다. 이후 확정한 변경사항은 현재 요구사항과 의사결정 기록에 반영하며, 충돌하는 항목은 현재 요구사항의 확정 내용을 우선 적용한다. 새로운 기능은 요구사항에 등록한 뒤 개발하고, 주요 기술 결정은 근거와 함께 기록한다. 후보 기술이나 오픈소스의 채택 여부는 아직 확정하지 않는다.
 
-첫 단계는 개발 작업 흐름의 상세 설계와 OpenCode를 이용한 세션·승인·worktree·하네스 설정 검증이다. OpenCode 최종 채택은 검증 결과를 보고 결정한다. 현재 구현·실행·검증 범위는 [app/README.md](https://github.com/ukkhnn/personal-ai/blob/33b41462d115bacb30795b1babe71ff50d36a50d/agent-workspace/app/README.md), 맥미니 인계 절차는 [app/HANDOFF.md](https://github.com/ukkhnn/personal-ai/blob/33b41462d115bacb30795b1babe71ff50d36a50d/agent-workspace/app/HANDOFF.md)에 기록했다. 2026-10-29 맥미니의 독립 실행 저장소와 로컬 서버를 확인하고 자동 테스트 27개를 통과했다. 2026-10-31에는 맥미니 중앙 앱에서 OpenCode 1.18.18·`deepseek/deepseek-flash`로 파일 생성·추적 파일 수정·명령 승인·후속 지시·완료 작업 재조회를 확인했다. 사용자 승인 후 Tailscale Serve HTTPS와 LaunchAgent를 적용했다. 맥미니 자체 접속으로 실제 TLS·앱 인증을, 서버 프로세스 재시작으로 기존 로그인 만료와 완료 작업 보존을 확인했다. 물리 맥북·모바일 접속, 병행 작업, 실제 OS 로그아웃·재부팅·잠자기 검증은 남아 있다. [운영 안내](https://github.com/ukkhnn/personal-ai/blob/33b41462d115bacb30795b1babe71ff50d36a50d/agent-workspace/app/OPERATIONS.md)를 참고한다. 전체 첫 버전의 완료 기준은 아직 충족하지 않았다.
+첫 단계는 개발 작업 흐름의 상세 설계와 OpenCode를 이용한 세션·승인·worktree·하네스 설정 검증이다. OpenCode 최종 채택은 검증 결과를 보고 결정한다. 현재 구현·실행·검증 범위는 [app/README.md](https://github.com/ukkhnn/personal-ai/blob/dbb7b6cc9df7801a10565e45a90a2e368e26deb4/agent-workspace/app/README.md), 맥미니 인계 절차는 [app/HANDOFF.md](https://github.com/ukkhnn/personal-ai/blob/dbb7b6cc9df7801a10565e45a90a2e368e26deb4/agent-workspace/app/HANDOFF.md)에 기록했다. 2026-10-29 맥미니의 독립 실행 저장소와 로컬 서버를 확인하고 자동 테스트 27개를 통과했다. 2026-10-31에는 맥미니 중앙 앱에서 OpenCode 1.18.18·`deepseek/deepseek-flash`로 파일 생성·추적 파일 수정·명령 승인·후속 지시·완료 작업 재조회를 확인했다. 사용자 승인 후 Tailscale Serve HTTPS와 LaunchAgent를 적용했다. 맥미니 자체 접속으로 실제 TLS·앱 인증을, 서버 프로세스 재시작으로 기존 로그인 만료와 완료 작업 보존을 확인했다. 물리 맥북·모바일 접속, 병행 작업, 실제 OS 로그아웃·재부팅·잠자기 검증은 남아 있다. [운영 안내](https://github.com/ukkhnn/personal-ai/blob/dbb7b6cc9df7801a10565e45a90a2e368e26deb4/agent-workspace/app/OPERATIONS.md)를 참고한다. 전체 첫 버전의 완료 기준은 아직 충족하지 않았다.
