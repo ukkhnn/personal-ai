@@ -1,5 +1,7 @@
 # Mac mini 작업 인계
 
+일상 접속·진단·재시작·장애 대응 순서는 [현재 운영 런북](../RUNBOOK.md)을 따른다.
+
 갱신: 2026-10-31. 개발은 **iCloud 밖 `~/Developer/personal-ai`의 `codex/mac-mini-central`**에서 이어간다. 공유 원본은 확인 당시 `feat/opencode-workspace` / `a73d817`이며 미커밋 파일이 없었다. 원격 브랜치도 같은 커밋이었다. 공유 원본의 브랜치·파일·Git 설정을 이 작업에서 변경하지 않았다.
 
 ## 완료한 작업

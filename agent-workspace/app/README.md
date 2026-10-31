@@ -1,5 +1,7 @@
 # Personal AI Workspace 실행
 
+일상 접속·진단·재시작·장애 대응 순서는 [현재 운영 런북](../RUNBOOK.md)을 따른다.
+
 자체 서버·화면에서 프로젝트와 작업을 관리하고 기존 OpenCode 설정을 재사용한다. 첫 제품 버전의 일부를 구현한 상태이며, [로드맵](../ROADMAP.md)의 전체 완료 기준은 아직 충족하지 않았다. 맥미니의 실제 확인 결과와 재개 절차는 [HANDOFF.md](HANDOFF.md), 운영 설정은 [OPERATIONS.md](OPERATIONS.md)를 따른다.
 
 ## 시작

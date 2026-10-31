@@ -27,7 +27,7 @@
 2. 실제 두 작업의 동시 실행·파일 격리와 OS 재로그인·재부팅·잠자기 후 동작을 검증한다.
 3. 스킬·도구·권한·템플릿 관리와 의존성 설치 승인 경계를 구현하고, Git 자동화·전체 결과물 조회·백업·정리를 이어간다.
 
-접속 주소와 서비스 관리 방법은 [운영 안내](app/OPERATIONS.md), 검증 근거와 작업 인계는 [HANDOFF.md](app/HANDOFF.md), 전체 미완료 범위는 [ROADMAP.md](ROADMAP.md)를 따른다. 작업 브랜치 커밋·push와 공통 문서의 `main` 반영은 진행했으며, 앱 구현의 최종 병합은 사용자 승인 대상으로 남아 있다.
+일상 운영 절차는 [런북](RUNBOOK.md), 적용 이력과 세부 설정은 [운영 안내](app/OPERATIONS.md), 검증 근거와 작업 인계는 [HANDOFF.md](app/HANDOFF.md), 전체 미완료 범위는 [ROADMAP.md](ROADMAP.md)를 따른다. 작업 브랜치 커밋·push와 공통 문서의 `main` 반영은 진행했으며, 앱 구현의 최종 병합은 사용자 승인 대상으로 남아 있다.
 
 ## 범위
 
@@ -52,6 +52,7 @@
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 검증 후 구체화할 시스템 구조와 데이터 흐름 |
 | [DECISIONS.md](DECISIONS.md) | 대안·선택 이유·제약을 포함한 기술 결정 기록 |
 | [ROADMAP.md](ROADMAP.md) | 단계별 작업과 진행 상태 |
+| [RUNBOOK.md](RUNBOOK.md) | 현재 서버 접속·점검·재시작·장애 대응 절차 |
 | [references/](references/README.md) | 오픈소스 조사 및 비교 자료 |
 | [specs/](specs/README.md) | 기능별 상세 명세 |
 | [experiments/](experiments/README.md) | PoC 코드, 검증 절차 및 결과 |
