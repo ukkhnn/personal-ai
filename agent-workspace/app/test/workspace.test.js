@@ -88,3 +88,39 @@ test('store is private and corrupted/unknown data is not silently overwritten',a
   await writeFile(f.store.file,JSON.stringify({version:999,projects:[],tasks:[],templates:[]}));
   assert.throws(()=>new Store(f.data),/Unsupported/);
 });
+
+test('server timer processes queued work and approvals without a connected client', async t => {
+  const f = await fixture(t);
+  // close before the fixture directory is removed by its cleanup hook.
+  try {
+    const originalSend = f.runtime.send.bind(f.runtime);
+    f.runtime.send = async (task, message) => {
+      await originalSend(task, message);
+      if (message.requestID === 'first') {
+        f.runtime.sessions.get(task.sessionID).permissions = [{ id: 'approval1', sessionID: task.sessionID }];
+      } else f.runtime.finish(task);
+    };
+    const originalReply = f.runtime.reply.bind(f.runtime);
+    f.runtime.reply = async (...args) => { await originalReply(...args); f.runtime.finish(args[0]); };
+    await f.workspace.enqueue(f.task.id, { text: 'first', requestID: 'first' });
+    await f.workspace.enqueue(f.task.id, { text: 'follow-up', requestID: 'second' });
+    f.workspace.start();
+    const until = async predicate => {
+      const deadline = Date.now() + 10000;
+      while (!predicate()) {
+        assert.ok(Date.now() < deadline, 'server timer did not progress');
+        await new Promise(resolve => setTimeout(resolve, 30));
+      }
+    };
+    // No tick(), HTTP request, or client polling drives execution here.
+    await until(() => f.task.status === 'waiting_approval');
+    assert.equal(f.runtime.sent.length, 1);
+    assert.equal(f.task.queue[1].status, 'queued');
+    await f.workspace.approve(f.task.id, 'approval1', 'once');
+    await until(() => f.task.queue.every(message => message.status === 'completed'));
+    assert.equal(f.runtime.sent.length, 2);
+    assert.equal(f.task.status, 'completed');
+    const persisted = new Store(f.data).data.tasks.find(task => task.id === f.task.id);
+    assert.ok(persisted.queue.every(message => message.status === 'completed'));
+  } finally { await f.workspace.close(); }
+});
