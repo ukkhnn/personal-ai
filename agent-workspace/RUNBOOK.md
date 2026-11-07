@@ -1,6 +1,8 @@
 # Mac mini 운영 런북
 
-기준: **2026-10-31, 한국시간**. 현재 적용된 중앙 서버를 이용하고 점검하는 절차다. 적용 이력·상세 근거는 [OPERATIONS.md](app/OPERATIONS.md), 작업 인계는 [HANDOFF.md](app/HANDOFF.md), 기능 진행 상황은 [README.md](README.md)를 참고한다.
+기준: **2026-11-14, 한국시간**. 현재 적용된 중앙 서버를 이용하고 점검하는 절차다. 적용 이력·상세 근거는 [OPERATIONS.md](app/OPERATIONS.md), 작업 인계는 [HANDOFF.md](app/HANDOFF.md), 기능 진행 상황은 [README.md](README.md)를 참고한다.
+
+현재 주의: 맥미니 서비스·로컬 초기 화면·sleep=0은 확인했지만 사용자 재인증 이후 Tailscale Connected 및 일반 Chrome HTTPS 로그인 화면까지 복구됐다. 셸 네트워크 제한은 그대로여서 CLI의 Serve·TLS·실제 모델 검증은 남아 있다. 일반 Chrome 주소창 직접 이동은 로컬 로그인 화면을 표시하지만 도구 이동은 출처 검사를 거부당했다. 보안 검사를 완화하지 말고 [M1 현재 검증·완료 절차](app/M1-VALIDATION.md)를 따른다. 아래 운영 값은 배치 설정이며 현재 HTTPS 정상 동작을 보증하는 표가 아니다.
 
 ## 1. 접속과 일상 사용
 
