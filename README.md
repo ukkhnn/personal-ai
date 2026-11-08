@@ -21,6 +21,8 @@ personal-ai/
 
 ## 현재 하위 프로젝트
 
+2026-11-14 운영 확인: 실제 작업 저장소는 `/Users/ukkhnn/Developer/personal-ai`다. 맥미니 LaunchAgent·로컬 로그인 화면·유휴 잠자기 해제를 확인했다. Tailscale 연결과 일반 Chrome HTTPS 로그인 화면을 추가 확인했으며, 실제 접속 단절 후 모델 작업 검증이 남아 **M1은 미완료**다. [M1 검증 기록과 완료 절차](agent-workspace/app/M1-VALIDATION.md)를 참고한다.
+
 [agent-workspace](agent-workspace/README.md)는 개인 AI 비서가 사용할 공통 실행 기반을 구축한다. 기기 간 세션 연속성, 멀티 LLM 및 사용자 정의 Agent, 하네스·메모리 템플릿, 예약 메시지·루틴이 주요 범위다.
 
 첨부 기획서의 “독립적인 AI 비서를 완성하는 작업이 아니다”라는 범위 제한은 이 하위 프로젝트에 적용된다. 상위 프로젝트인 `personal-ai`의 최종 목표는 개인 AI 비서다.
