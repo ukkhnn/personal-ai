@@ -62,8 +62,45 @@ test('permissions are checked against a fresh snapshot of the selected task',asy
   await assert.rejects(()=>f.workspace.approve(f.task.id,'per-other','once'),/이 작업/);
   await assert.rejects(()=>f.workspace.approve(f.task.id,'per1','always'),/한 번/);
   await f.workspace.approve(f.task.id,'per1','once');
-  await assert.rejects(()=>f.workspace.approve(f.task.id,'per1','once'),/이 작업/);
+  await assert.rejects(()=>f.workspace.approve(f.task.id,'per1','once'),/이미 처리/);
   assert.equal(f.runtime.replies.length,1);
+});
+
+test('simultaneous approval and rejection are serialized and visible after reconnect', async t => {
+  const f=await fixture(t);
+  f.runtime.sessions.get(f.task.sessionID).permissions=[{id:'race',sessionID:f.task.sessionID,permission:'bash',patterns:['git diff *'],metadata:{command:'git diff --stat'}}];
+  const results=await Promise.allSettled([
+    f.workspace.approve(f.task.id,'race','reject'), f.workspace.approve(f.task.id,'race','once'),
+  ]);
+  assert.equal(results.filter(result=>result.status==='fulfilled').length,1);
+  assert.equal(results.find(result=>result.status==='rejected').reason.status,409);
+  assert.deepEqual(f.runtime.replies,[{task:f.task.id,id:'race',reply:'reject'}]);
+  const restored=new Workspace(new Store(f.data),f.runtime,f.data);
+  const decision=restored.task(f.task.id).permissionDecisions[0];
+  assert.equal(decision.reply,'reject');assert.equal(decision.status,'applied');
+  assert.equal(decision.command,'git diff --stat');
+  await assert.rejects(()=>restored.approve(f.task.id,'race','once'),error=>error.status===409);
+  assert.equal(f.runtime.replies.length,1);
+});
+
+test('lost approval response and restart never resend an ambiguous decision', async t => {
+  const f=await fixture(t);let sends=0;
+  f.runtime.sessions.get(f.task.sessionID).permissions=[{id:'uncertain',sessionID:f.task.sessionID}];
+  f.runtime.reply=async()=>{
+    sends++;
+    assert.equal(new Store(f.data).data.tasks[0].permissionDecisions[0].status,'sending','decision is saved before delivery');
+    throw new Error('reply accepted but network response lost');
+  };
+  await assert.rejects(()=>f.workspace.approve(f.task.id,'uncertain','once'),error=>error.status===502);
+  const restored=new Workspace(new Store(f.data),f.runtime,f.data);
+  assert.equal(restored.task(f.task.id).permissionDecisions[0].status,'uncertain');
+  for(const reply of ['once','reject'])await assert.rejects(()=>restored.approve(f.task.id,'uncertain',reply),error=>error.status===409);
+  assert.equal(sends,1);
+  // A process crash after the write-ahead save also blocks delivery after reload.
+  restored.task(f.task.id).permissionDecisions[0].status='sending';restored.store.save();
+  const afterCrash=new Workspace(new Store(f.data),f.runtime,f.data);
+  await assert.rejects(()=>afterCrash.approve(f.task.id,'uncertain','once'),error=>error.status===409);
+  assert.equal(sends,1);
 });
 test('ambiguous delivery is persisted and never automatically retried',async t=>{
   const f=await fixture(t);

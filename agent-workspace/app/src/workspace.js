@@ -65,7 +65,7 @@ export class Workspace {
       const task = {
         id, projectID: project.id, title, ...tree, template: structuredClone(template),
         createdAt: Date.now(), sessionID: null, queue: [], current: null,
-        status: 'creating', paused: false, messages: [], permissions: [], questions: [],
+        status: 'creating', paused: false, messages: [], permissions: [], questions: [], permissionDecisions: [],
         error: null, runtimeAvailable: false,
       };
       this.data.tasks.push(task); this.store.save();
@@ -183,9 +183,31 @@ export class Workspace {
     return this.locked(id, async () => {
       if (!['once', 'reject'].includes(reply)) throw new InputError('한 번 승인 또는 거절을 선택하세요.');
       const task = this.task(id);
+      requestID = text(requestID, '승인 요청 ID', 200);
+      const previous = task.permissionDecisions?.find(decision => decision.id === requestID);
+      if (previous) {
+        throw new InputError(previous.status === 'applied'
+          ? '다른 기기 또는 이전 요청에서 이미 처리했습니다. 최신 상태를 확인하세요.'
+          : '승인 전달 결과를 확인해야 합니다. 중복 실행을 막기 위해 다시 전달하지 않습니다.', 409);
+      }
       const snapshot = await this.runtime.snapshot(task);
-      if (!snapshot.permissions.some(p => p.id === requestID)) throw new InputError('이 작업의 대기 중 승인 요청이 아닙니다.', 409);
-      await this.runtime.reply(task, requestID, reply);
+      const permission = snapshot.permissions.find(p => p.id === requestID);
+      if (!permission) throw new InputError('이 작업의 대기 중 승인 요청이 아닙니다.', 409);
+      const decision = {
+        id: requestID, reply, status: 'sending', createdAt: Date.now(),
+        permission: permission.permission, patterns: permission.patterns || [],
+        command: typeof permission.metadata?.command === 'string' ? permission.metadata.command : null,
+      };
+      // Backward-compatible optional field. Persist before contacting the engine:
+      // a lost reply or restart must not allow a second, contradictory decision.
+      (task.permissionDecisions ||= []).push(decision);
+      this.store.save();
+      try { await this.runtime.reply(task, requestID, reply); }
+      catch {
+        decision.status = 'uncertain'; decision.updatedAt = Date.now(); this.store.save();
+        throw new InputError('승인 전달 결과를 확인할 수 없습니다. 자동 재전송하지 않습니다. 작업 기록을 확인하세요.', 502);
+      }
+      decision.status = 'applied'; decision.updatedAt = Date.now();
       task.permissions = task.permissions.filter(p => p.id !== requestID); this.store.save();
       return { ok: true };
     });

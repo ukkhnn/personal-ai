@@ -62,7 +62,8 @@ export function createApp(workspace, runtime, password, options = {}) {
         sessions.delete(token); res.setHeader('Set-Cookie', sessionCookie(context, '', 0)); return json({ ok: true });
       }
       if (req.method === 'GET' && path === '/api/system') {
-        return json({ publicOrigin, access: context.secure ? 'tailscale' : 'local', authentication: 'password', sessionExpiresAt: session.expiresAt });
+        return json({ publicOrigin, access: context.secure ? 'tailscale' : 'local', authentication: 'password', sessionExpiresAt: session.expiresAt,
+          features: { permissionDecisions: true } });
       }
       if (req.method === 'GET' && path === '/api/state') {
         const { projects, templates, tasks } = workspace.data;
