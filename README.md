@@ -21,6 +21,8 @@ personal-ai/
 
 ## 현재 하위 프로젝트
 
+M2 구현(2026-11-14): 같은 작업을 여는 기기 간 링크, 새로고침·재로그인 후 추가 지시 중복 방지, 승인·거절 기록과 동시 처리 보호를 추가했다. 기존 `codex/mac-mini-central` 브랜치를 유지한다. 운영 백엔드 반영과 물리 기기 검증은 남아 있으며 [M2 검증 기록](agent-workspace/app/M2-VALIDATION.md)을 따른다.
+
 2026-11-14 운영 확인: 실제 작업 저장소는 `/Users/ukkhnn/Developer/personal-ai`다. 맥미니 LaunchAgent·로컬 로그인 화면·유휴 잠자기 해제를 확인했다. Tailscale 연결과 일반 Chrome HTTPS 로그인 화면을 추가 확인했으며, 실제 접속 단절 후 모델 작업 검증이 남아 **M1은 미완료**다. [M1 검증 기록과 완료 절차](agent-workspace/app/M1-VALIDATION.md)를 참고한다.
 
 [agent-workspace](agent-workspace/README.md)는 개인 AI 비서가 사용할 공통 실행 기반을 구축한다. 기기 간 세션 연속성, 멀티 LLM 및 사용자 정의 Agent, 하네스·메모리 템플릿, 예약 메시지·루틴이 주요 범위다.
