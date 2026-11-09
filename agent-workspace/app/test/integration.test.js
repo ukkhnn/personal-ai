@@ -8,14 +8,16 @@ import { Store } from '../src/store.js';
 import { Workspace } from '../src/workspace.js';
 import { git } from '../src/git.js';
 import { FakeRuntime } from './helpers/fake-runtime.js';
+import { handlerFetch } from './helpers/handler-client.js';
+import { MessageDrafts, requestAPI } from '../public/app.js';
 
 // Real HTTP, authentication, Git worktrees, and disk persistence; model execution
 // is deliberately simulated. These tests do not prove remote device connectivity.
 const password = 'http-integration-only-password';
 class Client {
-  constructor(base) { this.base = base; this.cookie = ''; }
+  constructor(base, fetcher) { this.base = base; this.fetcher = fetcher; this.cookie = ''; }
   async request(path, input, expected = 200) {
-    const response = await fetch(this.base + '/api' + path, {
+    const response = await this.fetcher(this.base + '/api' + path, {
       method: input === undefined ? 'GET' : 'POST',
       headers: { origin: this.base, 'content-type': 'application/json', ...(this.cookie ? { cookie: this.cookie } : {}) },
       body: input === undefined ? undefined : JSON.stringify(input),
@@ -28,7 +30,7 @@ class Client {
   }
   login() { return this.request('/login', { password }); }
 }
-async function fixture(t) {
+async function fixture(t, transport) {
   const dir = await mkdtemp(join(tmpdir(), 'personal-ai-http-test-'));
   const repo = join(dir, 'repo'), data = join(dir, 'data');
   const runtime = new FakeRuntime();
@@ -51,10 +53,12 @@ async function fixture(t) {
       await close();
       workspace = new Workspace(new Store(data), runtime, data);
       server = createApp(workspace, runtime, password);
-      await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-      this.base = `http://127.0.0.1:${server.address().port}`;
+      if (transport === 'HTTP') {
+        await new Promise((resolve,reject) => { server.once('error',reject); server.listen(0, '127.0.0.1', resolve); });
+        this.base = `http://127.0.0.1:${server.address().port}`; this.fetcher=fetch;
+      } else { this.base='http://127.0.0.1:4310'; this.fetcher=handlerFetch(server); }
     },
-    client() { return new Client(this.base); },
+    client() { return new Client(this.base,(...args)=>this.fetcher(...args)); },
     async create(client, title = 'HTTP integration') {
       const project = await client.request('/projects', { directory: repo }, 201);
       const template = await client.request('/templates', {
@@ -70,8 +74,40 @@ async function fixture(t) {
   return f;
 }
 
-test('HTTP simulated smoke: two clients share login, project, template, queued work, approval, question and changes', async t => {
-  const f = await fixture(t), desktop = f.client(), mobile = f.client();
+test('handler M2: lost response, re-login and tab reload preserve one queued instruction', async t => {
+  const f=await fixture(t,'handler'),desktop=f.client(),mobile=f.client();
+  await Promise.all([desktop.login(),mobile.login()]);
+  assert.equal((await desktop.request('/system')).features.permissionDecisions,true);
+  const {task}=await f.create(desktop),path=`/tasks/${task.id}`;
+  const values=new Map(),storage={getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,value)};
+  const drafts=new MessageDrafts(storage);drafts.edit(task.id,'one instruction');
+  const first=drafts.prepare(task.id,()=> 'survive-reload');
+  let loseResponse=true;
+  const fetcher=async (url,options)=>{
+    const response=await f.fetcher(f.base+url,{...options,headers:{...options.headers,origin:f.base,cookie:desktop.cookie}});
+    if(loseResponse){loseResponse=false;throw new Error('Response lost after server accepted the message');}
+    return response;
+  };
+  await assert.rejects(()=>requestAPI(path+'/messages',first,fetcher),/연결/);
+  assert.equal((await mobile.request(path)).queue.length,1);
+  const reload=new MessageDrafts(storage);
+  const retry=reload.prepare(task.id,()=> 'must-not-create-new-id');
+  await requestAPI(path+'/messages',retry,fetcher);
+  assert.equal((await mobile.request(path)).queue.length,1);
+  await desktop.request('/logout',{});
+  await assert.rejects(()=>requestAPI(path+'/messages',retry,fetcher),error=>error.status===401);
+  assert.equal(reload.get(task.id).pending.requestID,first.requestID);
+  await desktop.login();
+  const current=await desktop.request(path);
+  assert.equal(reload.reconcile(task.id,current.queue),true);
+  await mobile.request(path+'/messages',{requestID:'mobile-next',text:'follow up from mobile'},202);
+  assert.deepEqual((await desktop.request(path)).queue.map(message=>message.requestID),['survive-reload','mobile-next']);
+  assert.equal(f.runtime.sent.length,0,'authentication and client reconnect do not execute the runtime themselves');
+});
+
+for (const transport of ['HTTP', 'handler (no sockets)']) {
+test(`${transport} simulated smoke: two clients share login, project, template, queued work, approval, question and changes`, async t => {
+  const f = await fixture(t, transport), desktop = f.client(), mobile = f.client();
   await desktop.request('/state', undefined, 401);
   await Promise.all([desktop.login(), mobile.login()]);
   assert.notEqual(desktop.cookie, mobile.cookie, 'each client has a distinct authenticated session');
@@ -124,6 +160,13 @@ test('HTTP simulated smoke: two clients share login, project, template, queued w
   assert.deepEqual(f.runtime.answers, [{ task: task.id, id: 'question-1', answers: [['Keep']] }]);
   f.runtime.finish(running);
   await f.workspace.tick(task.id);
+  session.permissions = [{ id: 'reject-1', sessionID: task.sessionID, permission: 'bash', patterns: ['unsafe-command'] }];
+  await f.workspace.tick(task.id);
+  await mobile.request(path + '/permissions', { id: 'reject-1', reply: 'reject' });
+  await desktop.request(path + '/permissions', { id: 'reject-1', reply: 'once' }, 409);
+  const decisions = (await desktop.request(path)).permissionDecisions;
+  assert.deepEqual(decisions.map(item => [item.reply,item.status]), [['once','applied'],['reject','applied']]);
+  assert.equal(f.runtime.replies.length, 2, 'a stale second-device approval must not reach the runtime');
   assert.equal((await mobile.request(path)).status, 'completed');
   assert.deepEqual(running.queue.map(message => message.status), ['completed', 'completed']);
   const changes = await mobile.request(path + '/changes');
@@ -141,8 +184,8 @@ test('HTTP simulated smoke: two clients share login, project, template, queued w
   assert.equal(f.runtime.sent.length, 2, 'client reconnection does not restart completed work');
 });
 
-test('HTTP simulated parallel work: approvals and stop/resume are isolated per task', async t => {
-  const f = await fixture(t), desktop = f.client(), mobile = f.client();
+test(`${transport} simulated parallel work: approvals and stop/resume are isolated per task`, async t => {
+  const f = await fixture(t, transport), desktop = f.client(), mobile = f.client();
   await Promise.all([desktop.login(), mobile.login()]);
   const { project, template } = await f.create(desktop, 'Unused setup task');
   const [a, b] = await Promise.all([
@@ -188,8 +231,8 @@ test('HTTP simulated parallel work: approvals and stop/resume are isolated per t
   assert.equal(await readFile(join(f.repo, 'hello.txt'), 'utf8'), 'original\n');
 });
 
-test('HTTP restart and runtime reconnect preserve queue and history without duplicate delivery', async t => {
-  const f = await fixture(t), desktop = f.client();
+test(`${transport} restart and runtime reconnect preserve queue and history without duplicate delivery`, async t => {
+  const f = await fixture(t, transport), desktop = f.client();
   await desktop.login();
   const { task } = await f.create(desktop);
   const path = `/tasks/${task.id}`;
@@ -234,3 +277,5 @@ test('HTTP restart and runtime reconnect preserve queue and history without dupl
   assert.deepEqual(complete.queue.map(message => message.status), ['completed', 'completed']);
   assert.equal(f.runtime.sent.length, 2);
 });
+
+}
