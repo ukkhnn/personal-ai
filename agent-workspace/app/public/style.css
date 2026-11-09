@@ -262,3 +262,37 @@ dialog::backdrop{background:#0009;backdrop-filter:blur(3px)}
 dialog{padding:20px}
 .change-view{padding:18px 13px}
 }
+
+/* M2: visible connection state and actionable controls on narrow screens. */
+.sync-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 20px;border-bottom:1px solid var(--line);font-size:11px;flex-shrink:0}
+#sync-status[data-online="false"]{color:var(--red)}
+.sync-bar button{flex-shrink:0}
+.link-feedback{font-size:11px;color:var(--muted);margin:0 27px 8px;overflow-wrap:anywhere}
+.link-feedback:empty{display:none}
+.pending-message{display:flex;align-items:center;gap:12px;max-width:850px;margin:0 auto 8px;padding:10px;border:1px solid #5a5139;border-radius:6px;background:#25231e;font-size:11px}
+.pending-message span{flex:1;min-width:0;overflow-wrap:anywhere}
+.pending-message button{flex-shrink:0;font-size:11px}
+.decision-panel{max-width:850px;margin:12px auto;font-size:11px;color:var(--muted)}
+.decision-panel summary{cursor:pointer;padding:8px 0}
+.decision-item{padding:10px 0;border-bottom:1px solid var(--line)}
+.decision-item time{display:block;font-size:10px;margin:4px 0}
+.decision-item pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px}
+.approval-task{overflow-wrap:anywhere}
+#share-link{font-size:10px;min-width:0;width:100%;box-sizing:border-box}
+#share-help{display:block;margin-top:7px;line-height:1.6}
+.inspector dt label{margin:0}
+@media(max-width:700px){
+  .task-heading{flex-wrap:wrap}
+  .task-heading .actions{flex-wrap:wrap}
+  .task-heading .actions button,.request button,.pending-message button,.sync-bar button{min-height:44px}
+  .sync-bar{padding:8px 13px;align-items:flex-start}
+  .link-feedback{margin-left:17px;margin-right:17px}
+  .pending-message{flex-wrap:wrap}
+  .pending-message span{flex-basis:100%}
+  .composer textarea{font-size:16px}
+  .composer-hint{font-size:10px;line-height:1.5}
+  .login-card input,dialog input,dialog textarea,dialog select{font-size:16px}
+}
+
+#pending-text{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;flex-basis:100%;color:var(--muted)}
+.pending-message{flex-wrap:wrap}
