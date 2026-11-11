@@ -4,7 +4,8 @@ import { randomBytes, timingSafeEqual, createHash } from 'node:crypto';
 import { InputError } from './workspace.js';
 import { normalizePublicOrigin, requestContext, sessionCookie, sessionToken } from './http-security.js';
 
-const assets = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'] };
+const assets = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'],
+  '/experiments': ['experiments.html', 'text/html'], '/experiments.js': ['experiments.js', 'text/javascript'], '/experiments.css': ['experiments.css', 'text/css'] };
 const hash = value => createHash('sha256').update(value).digest();
 async function body(request) {
   if (!request.headers['content-type']?.startsWith('application/json')) throw new InputError('JSON 요청이 필요합니다.', 415);
@@ -63,7 +64,28 @@ export function createApp(workspace, runtime, password, options = {}) {
       }
       if (req.method === 'GET' && path === '/api/system') {
         return json({ publicOrigin, access: context.secure ? 'tailscale' : 'local', authentication: 'password', sessionExpiresAt: session.expiresAt,
-          features: { permissionDecisions: true } });
+          features: { permissionDecisions: true, ollamaExperiments: !!options.experiments } });
+      }
+      if (path.startsWith('/api/experiments')) {
+        const experiments = options.experiments;
+        if (!experiments) throw new InputError('실험 기능은 서버 업데이트 후 사용할 수 있습니다.', 503);
+        if (req.method === 'GET' && path === '/api/experiments/catalog') {
+          try { return json(await experiments.ollama.catalog()); }
+          catch { throw new InputError('Ollama에 연결하지 못했습니다. 맥미니의 Ollama 실행 상태를 확인하세요.', 503); }
+        }
+        if (req.method === 'GET' && path === '/api/experiments') return json({ runs: experiments.list() });
+        if (req.method === 'POST' && path === '/api/experiments') return json(experiments.start(await body(req)), 202);
+        const experimentRoute = path.match(/^\/api\/experiments\/([a-zA-Z0-9-]{1,100})(?:\/(evaluations|cancel))?$/);
+        if (experimentRoute) {
+          const [, id, action] = experimentRoute;
+          if (req.method === 'GET' && !action) return json(experiments.get(id));
+          if (req.method === 'POST') {
+            const input = await body(req);
+            if (action === 'evaluations') return json(experiments.evaluate(id, input));
+            if (action === 'cancel') return json(experiments.cancel(id));
+          }
+        }
+        throw new InputError('요청한 실험 경로가 없습니다.', 404);
       }
       if (req.method === 'GET' && path === '/api/state') {
         const { projects, templates, tasks } = workspace.data;

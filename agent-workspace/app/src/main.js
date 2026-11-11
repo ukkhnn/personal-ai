@@ -10,6 +10,8 @@ import { createApp } from './server.js';
 import { assertLocalPath } from './paths.js';
 import { normalizePublicOrigin } from './http-security.js';
 import { repository } from './git.js';
+import { Ollama } from './ollama.js';
+import { ExperimentStore, Experiments } from './experiments.js';
 
 assertLocalPath(fileURLToPath(new URL('..', import.meta.url)), '앱 실행 저장소');
 const dataDirectory = assertLocalPath(resolve(process.env.WORKSPACE_DATA_DIR || join(homedir(), '.local/share/personal-ai')), '상태 데이터');
@@ -28,11 +30,12 @@ try {
   unlinkSync(lock);
 } catch (error) { if (error.code !== 'ENOENT') throw error; }
 const fd = openSync(lock, 'wx', 0o600); writeFileSync(fd, String(process.pid)); closeSync(fd);
-let instance, workspace, server, shuttingDown = false;
+let instance, workspace, experiments, server, shuttingDown = false;
 async function shutdown() {
   if (shuttingDown) return;
   shuttingDown = true;
   if (server) { server.close(); server.closeIdleConnections(); }
+  if (experiments) await experiments.close();
   if (workspace) await workspace.close();
   if (instance) await instance.close();
   try { if (readFileSync(lock, 'utf8') === String(process.pid)) unlinkSync(lock); } catch {}
@@ -54,7 +57,8 @@ try {
   }
   instance = await launchRuntime(dataDirectory);
   workspace = new Workspace(store, instance.runtime, dataDirectory);
-  server = createApp(workspace, instance.runtime, password, { publicOrigin });
+  experiments = new Experiments(new ExperimentStore(dataDirectory), new Ollama(process.env.OLLAMA_URL));
+  server = createApp(workspace, instance.runtime, password, { publicOrigin, experiments });
   await new Promise((resolve, reject) => { server.once('error', reject); server.listen(port, '127.0.0.1', resolve); });
   workspace.start();
   console.log(`Workspace: http://127.0.0.1:${port}\nRemote: ${publicOrigin || 'not configured'}\nData: ${dataDirectory}\nLogin: ${process.env.WORKSPACE_PASSWORD ? 'WORKSPACE_PASSWORD from environment' : codeFile}\nKeep this process running while tasks execute.`);
