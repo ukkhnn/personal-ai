@@ -21,7 +21,9 @@ personal-ai/
 
 ## 현재 하위 프로젝트
 
-M2 구현(2026-11-14): 같은 작업을 여는 기기 간 링크, 새로고침·재로그인 후 추가 지시 중복 방지, 승인·거절 기록과 동시 처리 보호를 추가했다. 기존 `codex/mac-mini-central` 브랜치를 유지한다. 운영 백엔드 반영과 물리 기기 검증은 남아 있으며 [M2 검증 기록](agent-workspace/app/M2-VALIDATION.md)을 따른다.
+M3(2026-11-15): Ollama 실험 화면·서버 기록·평가 누적을 구현하고 실제 Qwen 3B/7B와 별도 브라우저 검증을 통과했다. 운영 서버 반영과 27B 설치는 대기한다. 사용자 지시로 물리 맥북 검증을 연기했다. [M3 검증 기록](agent-workspace/app/M3-VALIDATION.md).
+
+M2 구현(2026-11-14): 같은 작업을 여는 기기 간 링크, 새로고침·재로그인 후 추가 지시 중복 방지, 승인·거절 기록과 동시 처리 보호를 추가했다. 기존 `codex/mac-mini-central` 브랜치를 유지한다. 11월 15일 운영 반영·실제 모델 파일 수정·승인/거절·후속 지시를 확인했다. 물리 기기 검증은 남아 있으며 [M2 검증 기록](agent-workspace/app/M2-VALIDATION.md)을 따른다.
 
 2026-11-14 운영 확인: 실제 작업 저장소는 `/Users/ukkhnn/Developer/personal-ai`다. 맥미니 LaunchAgent·로컬 로그인 화면·유휴 잠자기 해제를 확인했다. Tailscale 연결과 일반 Chrome HTTPS 로그인 화면을 추가 확인했으며, 실제 접속 단절 후 모델 작업 검증이 남아 **M1은 미완료**다. [M1 검증 기록과 완료 절차](agent-workspace/app/M1-VALIDATION.md)를 참고한다.
 
