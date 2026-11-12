@@ -1,6 +1,6 @@
 # Ollama 실험 — M3
 
-실제 확인일: 2026-11-15. Mac mini M4 Pro, 통합 메모리 64GiB, Ollama 0.22.0.
+실제 확인일: 2026-11-15. Mac mini M4 Pro, 통합 메모리 64GiB, 초기 검증 Ollama 0.22.0, 운영 검증 0.40.16.
 
 ## 실행과 기록
 
@@ -45,17 +45,25 @@ node scripts/verify-ollama.js --allow-inference --model qwen2.5:3b --output ../e
 
 사용자가 27B급 모델도 실험하도록 요청했다. 64GiB 메모리와 확인 시점 124GiB 디스크 여유를 확인했다. Qwen 3.5 27B와 Gemma 3 27B의 공식 배포 크기는 각각 약 17~20GB, 17GB이며 컨텍스트·캐시 메모리는 별도다.
 
-현재 Ollama 0.22.0에서 `qwen3.5:27b`, `gemma3:27b`, 명시 양자화 태그 `gemma3:27b-it-q4_K_M` 다운로드가 모두 manifest HTTP 412 및 newer version required로 실패했다. **27B는 설치·실행 완료가 아니다.** 기존 Ollama는 Homebrew 서비스로 실행 중이다. 설치 영역 업데이트 후 아래 순서로 확인한다. 실제 데이터 다운로드와 업데이트는 이 세션에서 완료하지 않았다.
+초기 Ollama 0.22.0에서는 27B pull이 manifest HTTP 412(newer version required)로 거부됐다. 사용자가 Homebrew로 0.40.16 업데이트·서비스 재시작을 수행한 뒤 API 응답을 확인했다. 첫 다운로드는 19%에서 실행 세션이 종료됐고, 오후에 이어받아 종료 코드 0과 설치 완료를 확인했다.
 
-```bash
-brew update
-brew upgrade ollama
-brew services restart ollama
-ollama --version
-ollama pull qwen3.5:27b
-```
+최종 설치본은 `qwen3.5:27b`(27.4B, safetensors / NVFP4 / MLX, 약 19GB)다. 공식 태그가 제공하는 Mac용 모델이 선택됐다. 설치된 digest와 실제 양자화/runner를 기록했으며 태그 이름만으로 GGUF Q4_K_M이라고 간주하지 않는다.
 
-Qwen 3.5는 thinking을 지원하므로 짧은 32토큰 연결 시험에서는 최종 답변 전에 토큰 한도에 닿을 수 있다. 설치 후 실험 화면에서 충분한 생성 한도와 같은 비교 프롬프트로 측정하고, done_reason·thinking·최종 답변을 구분해 평가한다. Gemma 3 27B를 선택하면 `ollama pull gemma3:27b-it-q4_K_M` 후 위 검증 도구의 모델 인자를 바꿔 실행한다. 두 27B를 동시에 설치할 필요는 없다.
+## 운영 HTTPS 검증 완료
+
+Ollama 0.40.16과 실제 Tailscale HTTPS 앱에서 아래 세 모델을 확인했다. 모두 `M3_HTTPS_OK`를 정확히 반환했고, 실행 접수 후 로그아웃·재로그인, 평가 저장·재로그인 복원, 동일 요청 ID 재전송 시 원래 결과 반환을 통과했다. 인증 정보는 결과 파일에 포함하지 않았다.
+
+| 모델 | 실제 설치 형식 | 모델 확인·로딩 포함 소요 | 기록 |
+|---|---|---|---|
+| qwen2.5:3b | 3.1B / Q4_K_M | 2.120초 | [3B](results/2026-11-15-production/qwen3b.json) |
+| qwen2.5:latest | 7.6B / Q4_K_M | 3.030초 | [7B](results/2026-11-15-production/qwen7b.json) |
+| qwen3.5:27b | 27.4B / NVFP4 / MLX | 26.140초 | [27B](results/2026-11-15-production/qwen27b.json) |
+
+동일 system/prompt, temperature=0, top_p=1, seed=42, num_ctx=4096, num_predict=1024, stream=false, keep_alive=0을 사용했다. 27B는 별도 thinking 708자를 반환하고 총 201토큰을 생성했다. 로딩 10.015초, 생성 14.318초(약 14.0 token/s)다. 3B/7B는 6토큰을 생성했다. 이 수치는 각 1회 연결 검증 결과이며 모델 품질 순위나 엄밀한 속도 벤치마크가 아니다.
+
+27B 추론 중 100% GPU·context 4096·runner mlx를 확인했고, 완료 후 `ollama ps`에서 해제된 것도 확인했다. 실험 화면에서 27B를 선택할 때 우선 위 검증 조건인 컨텍스트 4096/최대 생성 1024를 기준으로 기록을 쌓는다. 기본 CLI 검증 스크립트의 32토큰 설정은 thinking 모델의 최종 응답 전에 한도에 닿을 수 있으므로, 27B 운영 검증은 별도 HTTP 검증에서 1024토큰으로 수행했다.
+
+M3의 실험 연결·기록 누적은 완료했다. 로컬 모델의 코드·도구 실행 및 물리 기기 전환 검증은 이번 통과 범위에 포함하지 않는다.
 
 ## 참고한 공식 명세
 
