@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync, readFileSync, writeFileSync, statSync, symlinkSync
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Ollama } from '../src/ollama.js';
-import { ExperimentStore, Experiments } from '../src/experiments.js';
+import { experimentInput, ExperimentStore, Experiments } from '../src/experiments.js';
 import { createApp } from '../src/server.js';
 import { handlerFetch } from './helpers/handler-client.js';
 import { PendingExperiment } from '../public/experiments.js';
@@ -98,7 +98,9 @@ test('M3 requires opt-in, bounded settings and literal loopback before accessing
 
 test('M3 restart preserves running intent as interrupted and never auto-replays', t => {
   const f = fixture(t);
-  f.store.replace({ version: 1, runs: [{ id: 'old', status: 'running', input: { model: 'local', prompt: 'old' }, evaluations: [] }] });
+  f.store.replace({ version: 1, runs: [{ id: 'old', status: 'running', input: experimentInput(input('old')),
+    createdAt: Date.now(), evaluations: [], execution: { provider: 'ollama', endpoint: f.ollama.origin,
+      timeoutMs: f.ollama.timeoutMs, stream: false, keepAlive: 0, tools: false } }] });
   const restored = new Experiments(new ExperimentStore(f.directory), f.ollama);
   assert.equal(restored.get('old').status, 'interrupted'); assert.equal(restored.get('old').error.code, 'restart');
   assert.equal(f.calls.length, 0);
@@ -174,4 +176,86 @@ test('M3 live verification requires explicit inference opt-in, model and output 
   assert.throws(() => verificationArguments(['--allow-inference']), /Explicit/);
   assert.throws(() => verificationArguments(['--allow-inference', '--model', 'm', '--output', '--oops']), /Usage/);
   assert.equal(verificationArguments(['--allow-inference', '--model', 'm', '--output', '/tmp/m3']).model, 'm');
+});
+
+test('Ollama validates unknown model metadata and rejects malformed tool or metric responses', async () => {
+  for (const models of [[null], [{ name: 'local', digest: 42 }], [{ name: 'local', size: -1 }], [{ name: 'local', details: [] }]]) {
+    const ollama = new Ollama(undefined, { fetcher: async url => Response.json(url.endsWith('/api/version') ? { version: 'test' } : { models }) });
+    await assert.rejects(ollama.catalog(), { code: 'invalid_response' });
+  }
+  for (const remote of [{ remote_host: false }, { remote_model: 0 }]) {
+    const ollama = new Ollama(undefined, { fetcher: async () => Response.json({ details: { format: 'gguf' }, capabilities: ['completion'], ...remote }) });
+    await assert.rejects(ollama.describe('local'), { code: 'invalid_response' });
+  }
+  for (const extra of [{ message: { role: 'assistant', content: 'ok', tool_calls: {} } },
+    { eval_count: 'four' }, { eval_duration: -1 }, { model: 123 }, { message: { role: 'assistant', content: 'ok', thinking: [] } }]) {
+    const ollama = new Ollama(undefined, { fetcher: async () => Response.json({ done: true, message: { role: 'assistant', content: 'ok' }, ...extra }) });
+    await assert.rejects(ollama.chat(experimentInput(input())), { code: 'invalid_response' });
+  }
+});
+
+test('experiment inputs reject null and primitive requests as validation errors before any call', t => {
+  const f = fixture(t);
+  assert.throws(() => new Experiments(f.store, { kind: 'development' }), /text-only runtime/);
+  for (const value of [null, false, 12, 'request', []]) {
+    assert.throws(() => f.experiments.start(value), { status: 400 });
+    assert.throws(() => f.experiments.evaluate('missing', value), { status: 400 });
+  }
+  assert.equal(f.calls.length, 0);
+});
+
+test('experiment storage rejects impossible terminal states without overwriting the original bytes', async t => {
+  const f = fixture(t); f.experiments.start(input()); await finish(f.experiments);
+  const valid = structuredClone(f.store.data);
+  const mutations = [
+    run => { delete run.response; },
+    run => { run.error = { code: 'also-failed', message: 'contradictory' }; },
+    run => { run.input.options.num_ctx = '4096'; },
+    run => { run.execution.tools = true; },
+    run => { run.modelSnapshot.remote = true; },
+    run => { run.response.metrics.eval_count = '4'; },
+    run => { run.status = 'running'; },
+    run => { run.evaluations = [{ id: 'bad', verdict: 'unknown', notes: '', createdAt: Date.now() }]; },
+  ];
+  for (const mutate of mutations) {
+    const damaged = structuredClone(valid); mutate(damaged.runs[0]);
+    const bytes = JSON.stringify(damaged); writeFileSync(f.store.file, bytes);
+    assert.throws(() => new ExperimentStore(f.directory), /damaged/);
+    assert.equal(readFileSync(f.store.file, 'utf8'), bytes);
+    assert.throws(() => f.store.replace(damaged), /damaged/);
+    assert.deepEqual(f.store.data, valid);
+  }
+});
+
+test('typed experiment store reads existing v1 verification records without changing their shape', t => {
+  const f = fixture(t);
+  for (const name of ['qwen3b', 'qwen7b']) {
+    const original = JSON.parse(readFileSync(new URL(`../../experiments/ollama/results/2026-11-15-${name}/experiments.json`, import.meta.url), 'utf8'));
+    writeFileSync(f.store.file, JSON.stringify(original));
+    assert.deepEqual(new ExperimentStore(f.directory).data, original);
+  }
+  for (const name of ['qwen3b', 'qwen7b', 'qwen27b']) {
+    const { run } = JSON.parse(readFileSync(new URL(`../../experiments/ollama/results/2026-11-15-production/${name}.json`, import.meta.url), 'utf8'));
+    const original = { version: 1, runs: [run] };
+    writeFileSync(f.store.file, JSON.stringify(original));
+    assert.deepEqual(new ExperimentStore(f.directory).data, original);
+  }
+});
+
+test('experiment completion remains durable when the wall clock moves backwards during inference', async t => {
+  const current = Date.now();
+  let now = current;
+  t.mock.method(Date, 'now', () => now);
+  const f = fixture(t, (url, options, next) => {
+    if (url.endsWith('/api/chat')) now = current - 60000;
+    return next(url, options);
+  });
+  f.experiments.start(input()); await finish(f.experiments);
+  const completed = f.experiments.get('experiment-one');
+  assert.equal(completed.status, 'completed');
+  assert.equal(completed.finishedAt, current - 60000);
+  assert.equal(completed.createdAt, current);
+  assert.equal(f.experiments.storageError, false);
+  assert.deepEqual(new ExperimentStore(f.directory).data.runs[0], completed);
+  assert.equal(f.calls.filter(call => call.path === '/api/chat').length, 1);
 });

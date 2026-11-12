@@ -1,14 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { basename } from 'node:path';
 import { repository, createWorktree, changes } from './git.js';
-
-export class InputError extends Error {
-  constructor(message, status = 400) { super(message); this.status = status; }
-}
-export function text(value, name, max = 20000) {
-  if (typeof value !== 'string' || !value.trim() || value.length > max) throw new InputError(`${name}: 1~${max}자 이내로 입력하세요.`);
-  return value.trim();
-}
+import { permissionReply, permissionDecisionHistory, assertNewPermissionDecision, createPermissionDecision, settlePermissionDecision } from './core/permission-decisions.ts';
+import { InputError, text } from './core/input.ts';
+export { InputError, text } from './core/input.ts';
 export class Workspace {
   constructor(store, runtime, dataDirectory) {
     this.store = store; this.runtime = runtime; this.dataDirectory = dataDirectory;
@@ -181,33 +176,26 @@ export class Workspace {
   }
   async approve(id, requestID, reply) {
     return this.locked(id, async () => {
-      if (!['once', 'reject'].includes(reply)) throw new InputError('한 번 승인 또는 거절을 선택하세요.');
+      reply = permissionReply(reply);
       const task = this.task(id);
       requestID = text(requestID, '승인 요청 ID', 200);
-      const previous = task.permissionDecisions?.find(decision => decision.id === requestID);
-      if (previous) {
-        throw new InputError(previous.status === 'applied'
-          ? '다른 기기 또는 이전 요청에서 이미 처리했습니다. 최신 상태를 확인하세요.'
-          : '승인 전달 결과를 확인해야 합니다. 중복 실행을 막기 위해 다시 전달하지 않습니다.', 409);
-      }
+      const history = permissionDecisionHistory(task.permissionDecisions);
+      assertNewPermissionDecision(history, requestID);
       const snapshot = await this.runtime.snapshot(task);
       const permission = snapshot.permissions.find(p => p.id === requestID);
       if (!permission) throw new InputError('이 작업의 대기 중 승인 요청이 아닙니다.', 409);
-      const decision = {
-        id: requestID, reply, status: 'sending', createdAt: Date.now(),
-        permission: permission.permission, patterns: permission.patterns || [],
-        command: typeof permission.metadata?.command === 'string' ? permission.metadata.command : null,
-      };
+      const decision = createPermissionDecision(requestID, reply, permission);
       // Backward-compatible optional field. Persist before contacting the engine:
       // a lost reply or restart must not allow a second, contradictory decision.
-      (task.permissionDecisions ||= []).push(decision);
+      const decisionIndex = history.length;
+      history.push(decision); task.permissionDecisions = history;
       this.store.save();
       try { await this.runtime.reply(task, requestID, reply); }
       catch {
-        decision.status = 'uncertain'; decision.updatedAt = Date.now(); this.store.save();
+        history[decisionIndex] = settlePermissionDecision(decision, 'uncertain'); this.store.save();
         throw new InputError('승인 전달 결과를 확인할 수 없습니다. 자동 재전송하지 않습니다. 작업 기록을 확인하세요.', 502);
       }
-      decision.status = 'applied'; decision.updatedAt = Date.now();
+      history[decisionIndex] = settlePermissionDecision(decision, 'applied');
       task.permissions = task.permissions.filter(p => p.id !== requestID); this.store.save();
       return { ok: true };
     });

@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, openSync, writeFileSync, fsyncSync, closeSync, renameSync, chmodSync } from 'node:fs';
 import { join } from 'node:path';
 import { assertLocalPath } from './paths.js';
+import { assertPermissionDecisionTasks } from './core/permission-decisions.ts';
 
 // Schema is owned by the workspace, not by a particular runtime.
 export class Store {
@@ -13,11 +14,13 @@ export class Store {
       if (error.code !== 'ENOENT') throw error;
       this.data = { version: 1, projects: [], tasks: [], templates: [] };
     }
-    if (this.data.version !== 1 || !['projects', 'tasks', 'templates'].every(k => Array.isArray(this.data[k]))) {
+    if (!this.data || this.data.version !== 1 || !['projects', 'tasks', 'templates'].every(k => Array.isArray(this.data[k]))) {
       throw new Error('Unsupported or damaged workspace data. Restore a backup before starting.');
     }
+    assertPermissionDecisionTasks(this.data.tasks);
   }
   save() {
+    assertPermissionDecisionTasks(this.data.tasks);
     const temp = `${this.file}.tmp`;
     const fd = openSync(temp, 'w', 0o600);
     try { writeFileSync(fd, JSON.stringify(this.data, null, 2)); fsyncSync(fd); }

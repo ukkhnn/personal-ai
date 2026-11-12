@@ -97,7 +97,8 @@ test('lost approval response and restart never resend an ambiguous decision', as
   for(const reply of ['once','reject'])await assert.rejects(()=>restored.approve(f.task.id,'uncertain',reply),error=>error.status===409);
   assert.equal(sends,1);
   // A process crash after the write-ahead save also blocks delivery after reload.
-  restored.task(f.task.id).permissionDecisions[0].status='sending';restored.store.save();
+  restored.task(f.task.id).permissionDecisions[0].status='sending';
+  delete restored.task(f.task.id).permissionDecisions[0].updatedAt;restored.store.save();
   const afterCrash=new Workspace(new Store(f.data),f.runtime,f.data);
   await assert.rejects(()=>afterCrash.approve(f.task.id,'uncertain','once'),error=>error.status===409);
   assert.equal(sends,1);
