@@ -1,42 +1,33 @@
 # Personal AI
 
-최종 목표는 사용자의 상황과 작업 문맥을 이해하고 필요한 일을 수행하는 **개인 AI 비서**를 구축하는 것이다. 사용자가 일상적으로 계속 사용할 수 있는 완성품을 목표로 하며, 개발 단계는 그 목표에 도달하기 위한 구현 순서다. 모든 주요 설계에서 향후 기능 추가와 구성 요소 교체, 기존 데이터 보존을 고려한다.
+Mac mini에서 개발 작업을 실행하고 웹에서 지시·승인·결과를 확인하는 워크스페이스다. OpenCode 개발 작업과 Ollama 텍스트 실험을 제공한다.
 
-## 프로젝트 위계
+## 기능
 
-```text
-personal-ai/
-├── README.md
-└── agent-workspace/
-    ├── README.md
-    ├── PRD.md
-    ├── REQUIREMENTS.md
-    ├── ARCHITECTURE.md
-    ├── DECISIONS.md
-    ├── ROADMAP.md
-    ├── references/
-    ├── specs/
-    └── experiments/
-```
+- 작업마다 Git 브랜치·worktree를 생성하고 모델·지침·메모리 템플릿을 적용한다.
+- 추가 지시를 대기열에 저장한다. 같은 요청 ID의 중복 전송을 차단하고 전달 결과가 불명확하면 자동 재전송하지 않는다.
+- 명령 실행 승인·거절, 질문 응답, 중단·이어가기와 변경 파일 diff를 제공한다.
+- Tailscale HTTPS와 별도 앱 로그인으로 같은 작업 기록에 접근한다.
+- Ollama 실험의 입력·모델 정보·응답·실패·평가를 저장하고 JSON으로 내보낸다. 이 실험에서는 도구나 셸을 실행하지 않는다.
+- `paw` CLI로 실행 환경을 진단하고 macOS 운영 설정 파일을 미리 확인·생성한다.
 
-## 현재 하위 프로젝트
+## 사용
 
-M3 완료(2026-11-15): Ollama 실험 화면·서버 기록·평가 누적을 구현하고 실제 운영 HTTPS에서 Qwen 3B/7B/27B 응답·평가·재로그인 복원·중복 방지를 확인했다. 사용자 지시로 물리 맥북 검증을 연기했다. [M3 검증 기록](agent-workspace/app/M3-VALIDATION.md).
+[앱 실행·검사](agent-workspace/app/README.md) · [CLI 명령어](agent-workspace/app/cli/README.md) · [운영 런북](agent-workspace/RUNBOOK.md)
 
-M2 구현(2026-11-14): 같은 작업을 여는 기기 간 링크, 새로고침·재로그인 후 추가 지시 중복 방지, 승인·거절 기록과 동시 처리 보호를 추가했다. 기존 `codex/mac-mini-central` 브랜치를 유지한다. 11월 15일 운영 반영·실제 모델 파일 수정·승인/거절·후속 지시를 확인했다. 물리 기기 검증은 남아 있으며 [M2 검증 기록](agent-workspace/app/M2-VALIDATION.md)을 따른다.
+서버는 Node.js 22.19 이상에서 실행한다. 실행 폴더·상태 데이터·worktree는 iCloud 등 동기화 폴더 밖에 둔다. 기존 운영 서버가 실행 중이면 중복으로 시작하지 않는다.
 
-2026-11-14 운영 확인: 실제 작업 저장소는 `/Users/ukkhnn/Developer/personal-ai`다. 맥미니 LaunchAgent·로컬 로그인 화면·유휴 잠자기 해제를 확인했다. Tailscale 연결과 일반 Chrome HTTPS 로그인 화면을 추가 확인했으며, 실제 접속 단절 후 모델 작업 검증이 남아 **M1은 미완료**다. [M1 검증 기록과 완료 절차](agent-workspace/app/M1-VALIDATION.md)를 참고한다.
+## 구성
 
-[agent-workspace](agent-workspace/README.md)는 개인 AI 비서가 사용할 공통 실행 기반을 구축한다. 기기 간 세션 연속성, 멀티 LLM 및 사용자 정의 Agent, 하네스·메모리 템플릿, 예약 메시지·루틴이 주요 범위다.
+| 경로 | 내용 |
+|---|---|
+| `agent-workspace/app/src/` | HTTP API, 개발 작업·승인 처리, 상태 저장 |
+| `agent-workspace/app/src/core/` | TypeScript 입력 검증, 승인 상태, Ollama 어댑터·실험 기록 |
+| `agent-workspace/app/public/` | 개발 작업·Ollama 실험 화면 |
+| `agent-workspace/app/cli/` | 설치 가능한 CLI와 서버에서 공유하는 진단·설정 생성 코드 |
+| `agent-workspace/app/test/` | HTTP·인증·Git·재시작·중복 방지 테스트 |
+| `.github/workflows/workspace-ci.yml` | 타입 검사·린트·테스트·CLI 설치 검사 |
 
-첨부 기획서의 “독립적인 AI 비서를 완성하는 작업이 아니다”라는 범위 제한은 이 하위 프로젝트에 적용된다. 상위 프로젝트인 `personal-ai`의 최종 목표는 개인 AI 비서다.
+실제 DeepSeek 개발 작업과 운영 HTTPS의 Qwen 3B/7B/27B 실험을 확인했다. 세부 조건은 [M2](agent-workspace/app/M2-VALIDATION.md), [M3](agent-workspace/app/M3-VALIDATION.md) 기록에 있다. 물리 맥북의 접속 단절·기기 전환, OS 재부팅 복구, 실제 병행 작업은 추가 검증이 필요하다. 자동 커밋·push·병합과 백업·복원 기능은 구현 전이다.
 
-현재는 워크스페이스 기반 구축부터 진행하며, 향후 AI 비서 구현을 위한 별도 디렉토리와 구조는 구체적인 설계가 정해지면 추가한다.
-
-## 현재 확정 방향
-
-자체 사용자 환경을 중심으로 기존 구독형 AI 도구도 연결한다. 첫 버전은 개발 작업을 우선하며 Mac mini에서 실행하고, 작업별 브랜치와 Git worktree로 병행 작업을 분리한다. 코드 변경은 Git/GitHub로 공유하고 대화·실행·승인 상태는 중앙 서비스에서 관리한다.
-
-첫 버전부터 프롬프트·모델·스킬·도구·메모리·권한을 설정하는 하네스 템플릿을 제공한다. 작업 순서 구성은 후속 확장으로 남기고, 실행 엔진은 OpenCode부터 검증한다. 검증 순서의 확정은 최종 채택을 의미하지 않는다.
-
-최초 기획서는 원문으로 보존한다. 이후 확정한 변경사항과 현재 적용 범위는 [현재 요구사항](agent-workspace/REQUIREMENTS.md), 선택 근거는 [의사결정 기록](agent-workspace/DECISIONS.md)을 참고한다.
+기획·전체 미완료 범위는 [Agent Workspace](agent-workspace/README.md)와 [로드맵](agent-workspace/ROADMAP.md)을 참고한다.

@@ -1,5 +1,7 @@
 # Agent Workspace
 
+현재 기능·실행 명령은 [앱 사용법](app/README.md), 환경 진단·운영 설정 생성 명령은 [paw CLI 사용법](app/cli/README.md)을 참고한다.
+
 현재 M3 완료: Ollama 실험 실행·응답/실패/모델 설정 기록·평가·JSON 내보내기 구현, 운영 HTTPS의 Qwen 3B/7B/27B 실험·평가·재로그인 복원·중복 방지 검증 완료. 물리 맥북 검증은 사용자 지시로 연기했다. [M3 기록](app/M3-VALIDATION.md).
 
 개인 AI 비서의 기반 인프라를 구축하는 `personal-ai`의 하위 프로젝트다.

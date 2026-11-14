@@ -1,0 +1,48 @@
+name: Workspace checks
+
+on:
+  push:
+    paths: ['agent-workspace/app/**', '.github/workflows/workspace-ci.yml']
+  pull_request:
+    paths: ['agent-workspace/app/**', '.github/workflows/workspace-ci.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: workspace-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            node: '22.19.0'
+          - os: macos-latest
+            node: '24'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: agent-workspace/app
+    env:
+      npm_config_cache: ${{ github.workspace }}/agent-workspace/app/.npm-cache
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: agent-workspace/app/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run check
+      - run: npm test
+      - run: npm run test:cli
+      - run: npm run build:cli
+      - run: npm run test:package
