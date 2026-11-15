@@ -1,0 +1,6 @@
+{
+  "name": "personal-ai-local-opencode",
+  "private": true,
+  "description": "Optional project-local engine, used only when no existing OpenCode is available",
+  "dependencies": { "opencode-ai": "1.18.18" }
+}

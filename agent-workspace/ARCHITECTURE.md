@@ -40,7 +40,7 @@ Mac mini
 
 첫 버전은 프롬프트·모델·스킬·도구·메모리·권한 설정과 템플릿 재사용을 제공한다. 사용자 정의 작업 순서 구성은 후속 확장이다. [하네스 템플릿 명세](specs/harness-templates.md)를 참고한다.
 
-첫 실행 엔진 검증 대상은 OpenCode다 (DEC-010). 실제 기능·권한·상태 복원·설정 적용을 검증한 뒤 채택 여부를 결정한다. 2026-10-28 맥북의 첫 실행 검증에 이어 2026-10-31 맥미니 중앙 앱에서도 OpenCode 1.18.18·`deepseek/deepseek-flash`로 단일 작업의 파일 생성·수정, 명령 승인, 후속 지시, 독립된 로컬 로그인 클라이언트의 requestID 중복 방지·완료 작업 재조회를 확인했다. 현재 구현은 [app/README.md](https://github.com/ukkhnn/personal-ai/blob/33b41462d115bacb30795b1babe71ff50d36a50d/agent-workspace/app/README.md)를 참고한다. 전체 설정 범위와 맥미니 운영 검증은 남아 있다.
+첫 실행 엔진 검증 대상은 OpenCode다 (DEC-010). 실제 기능·권한·상태 복원·설정 적용을 검증한 뒤 채택 여부를 결정한다. 2026-10-28 맥북의 첫 실행 검증에 이어 2026-10-31 맥미니 중앙 앱에서도 OpenCode 1.18.18·`deepseek/deepseek-flash`로 단일 작업의 파일 생성·수정, 명령 승인, 후속 지시, 독립된 로컬 로그인 클라이언트의 requestID 중복 방지·완료 작업 재조회를 확인했다. 현재 구현은 [app/README.md](app/README.md)를 참고한다. 전체 설정 범위와 맥미니 운영 검증은 남아 있다.
 
 ## 실행 연결 구조 제안 — 검증 필요
 
@@ -122,4 +122,4 @@ MacBook / 모바일 (같은 tailnet, 각각 앱 로그인; 물리 기기 미검�
 
 사용자 승인 후 Tailscale Serve의 백그라운드 HTTPS 프록시와 `local.personal-ai.workspace` LaunchAgent를 적용했다. HTTPS origin은 `https://ukkhnns-macmini.tail2e5038.ts.net`이며 앱은 계속 `127.0.0.1:4310`에서만 수신한다. MagicDNS·HTTPS는 활성화, Funnel은 비활성 상태다. 기존 tailnet ACL은 유지했으므로 특정 기기만 허용하도록 제한한 구성은 아니며 앱 인증은 필수다.
 
-LaunchAgent는 소스 폴더 밖의 비공개 환경 파일을 읽고, 해당 파일에는 경로·HTTPS origin만 두며 API 키를 넣지 않았다. 맥미니 자체에서 실제 TLS·Secure 쿠키·HSTS·Origin 검사·완료 작업 조회를 확인했다. 정상 종료 후 서버 프로세스 재시작에서는 기존 로그인 401·새 로그인·완료 작업 보존을 확인했다. 실제 OS 로그아웃·재로그인·재부팅·잠자기와 물리 기기 접속은 미검증이며, 진행 중 엔진 실행의 무손실 재개를 보장하지 않는다. [운영 안내](https://github.com/ukkhnn/personal-ai/blob/33b41462d115bacb30795b1babe71ff50d36a50d/agent-workspace/app/OPERATIONS.md)에 실행·검증·되돌리기와 현재 한계를 기록했다.
+LaunchAgent는 소스 폴더 밖의 비공개 환경 파일을 읽고, 해당 파일에는 경로·HTTPS origin만 두며 API 키를 넣지 않았다. 맥미니 자체에서 실제 TLS·Secure 쿠키·HSTS·Origin 검사·완료 작업 조회를 확인했다. 정상 종료 후 서버 프로세스 재시작에서는 기존 로그인 401·새 로그인·완료 작업 보존을 확인했다. 실제 OS 로그아웃·재로그인·재부팅·잠자기와 물리 기기 접속은 미검증이며, 진행 중 엔진 실행의 무손실 재개를 보장하지 않는다. [운영 안내](app/OPERATIONS.md)에 실행·검증·되돌리기와 현재 한계를 기록했다.

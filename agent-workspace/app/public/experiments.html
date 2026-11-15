@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ollama 실험 · Personal AI</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/experiments.css"></head>
+<body class="experiments-page">
+<header class="experiment-header"><a href="/">← 워크스페이스</a><span>Personal AI · 실험</span></header>
+<main class="experiment-main">
+  <div class="experiment-heading"><div><p class="eyebrow">LOCAL MODEL LAB</p><h1>Ollama 실험</h1><p>프롬프트와 설정을 바꿔 보고, 응답과 평가를 비교하세요.</p></div><button id="refresh" type="button">새로고침</button></div>
+  <p id="notice" role="alert" hidden></p><p id="connection" role="status">서버 연결 확인 중</p>
+  <p id="login-help" hidden><a href="/">워크스페이스에서 로그인</a>한 뒤 이 페이지를 다시 열어 주세요.</p>
+  <div id="experiment-content" class="experiment-grid" hidden>
+    <section class="experiment-card"><h2>새 실험</h2><p>맥미니에 설치된 모델로 한 번씩 실행합니다. 파일·명령 실행은 지원하지 않습니다.</p>
+      <form id="run-form">
+        <label>모델<select id="model" required><option value="">모델을 불러오는 중</option></select></label>
+        <label>시스템 지침 <small>선택 · 비워 두면 모델 기본값</small><textarea id="system" rows="2" maxlength="20000"></textarea></label>
+        <label>프롬프트<textarea id="prompt" rows="6" maxlength="20000" required placeholder="비교할 질문이나 작업을 입력하세요."></textarea></label>
+        <details><summary>생성 설정</summary><div class="experiment-settings">
+          <label>Temperature<input id="temperature" type="number" value="0.2" min="0" max="2" step="0.1" required></label>
+          <label>Top P<input id="top_p" type="number" value="0.9" min="0.01" max="1" step="0.01" required></label>
+          <label>Seed<input id="seed" type="number" value="42" min="0" max="2147483647" required></label>
+          <label>컨텍스트 토큰<input id="num_ctx" type="number" value="4096" min="512" max="16384" required></label>
+          <label>최대 생성 토큰<input id="num_predict" type="number" value="512" min="1" max="4096" required></label>
+        </div></details>
+        <p class="field-note">한 번에 실험 하나 · 최대 응답 대기 3분 · 결과는 서버에 저장됩니다. 실행 후 모델 메모리를 해제합니다.</p>
+        <label class="experiment-consent"><input id="confirm" type="checkbox" required>위 내용으로 로컬 모델을 실행합니다.</label>
+        <button id="run" class="primary" type="submit">실험 실행</button>
+      </form>
+      <div id="pending" hidden><p>이전 요청의 접수 여부를 확인해야 합니다. 같은 요청 ID로 확인하므로 중복 실행하지 않습니다.</p><button id="retry" type="button">이전 실험 접수 확인</button></div>
+    </section>
+    <section class="experiment-card"><h2>실험 기록 <span id="count"></span></h2><div id="history"></div></section>
+    <section id="detail" class="experiment-card experiment-detail" hidden>
+      <div class="experiment-heading"><h2 id="detail-title">실험 결과</h2><div class="experiment-actions"><button id="reuse" type="button">설정 불러오기</button><button id="export" type="button">JSON 내보내기</button><button id="cancel" type="button" hidden>실험 중단</button></div></div>
+      <p id="detail-status" role="status"></p><p id="detail-error" class="error" hidden></p>
+      <dl id="metadata"></dl>
+      <h3>프롬프트</h3><pre id="detail-prompt"></pre><h3>응답</h3><pre id="response"></pre>
+      <details id="thinking-panel" hidden><summary>모델이 반환한 사고 텍스트</summary><pre id="thinking"></pre></details>
+      <details><summary>실행 설정·모델 정보</summary><pre id="settings"></pre></details>
+      <h3>평가 기록</h3><div id="evaluations"></div>
+      <form id="evaluation-form"><label>판정<select id="verdict"><option value="pass">통과</option><option value="partial">부분 충족</option><option value="fail">실패</option></select></label><label>평가 기준과 메모<textarea id="notes" rows="3" maxlength="10000" placeholder="정확성, 지시 준수, 비교한 차이 등을 기록하세요."></textarea></label><button id="save-evaluation" type="submit">평가 추가</button></form>
+    </section>
+  </div>
+</main>
+<script type="module" src="/experiments.js"></script>
+</body></html>

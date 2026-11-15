@@ -1,0 +1,26 @@
+.experiments-page a{color:#b2b5ff;text-decoration:none}
+.experiment-header{display:flex;justify-content:space-between;gap:20px;padding:20px 28px;border-bottom:1px solid var(--line)}
+.experiment-main{max-width:1200px;margin:36px auto;padding:0 24px 60px}
+.experiment-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:20px}
+.experiment-heading p,.experiment-card>p{color:var(--muted)}
+.experiment-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+.experiment-card{min-width:0;border:1px solid var(--line);border-radius:12px;background:var(--raised);padding:24px}
+.experiment-detail{grid-column:1/-1}
+.experiment-settings{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;padding-top:16px}
+.experiment-consent{display:flex;gap:10px;align-items:center;margin-top:18px}
+.experiment-consent input{width:20px;height:20px;margin:0;flex-shrink:0}
+.experiment-actions{display:flex;flex-wrap:wrap;gap:8px}
+.experiment-history-item{width:100%;display:block;text-align:left;white-space:normal;padding:12px;margin:8px 0;overflow-wrap:anywhere}
+.experiment-history-item[aria-current=true]{border-color:var(--accent)}
+.experiment-history-item strong,.experiment-history-item small{display:block}
+.experiment-detail pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--bg);padding:16px;border-radius:6px;max-height:500px;overflow:auto}
+.experiment-detail dl{display:grid;grid-template-columns:110px minmax(0,1fr);gap:8px 16px}
+.experiment-detail dt{color:var(--muted)}
+.experiment-detail dd{margin:0;overflow-wrap:anywhere}
+.experiment-detail h3{margin-top:24px}
+.experiment-card summary{cursor:pointer;padding:10px 0}
+.experiment-evaluation{border-bottom:1px solid var(--line);padding:12px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+#history{max-height:650px;overflow:auto}
+#notice{color:var(--red);border:1px solid #694747;border-radius:6px;padding:12px}
+#pending{border-top:1px solid var(--line);margin-top:16px;padding-top:16px}
+@media(max-width:760px){.experiment-grid{grid-template-columns:1fr}.experiment-main{margin:24px auto;padding:0 14px 40px}.experiment-card{padding:18px}.experiment-heading{flex-direction:column}.experiment-header{padding:16px}.experiments-page button{min-height:44px}.experiments-page input,.experiments-page textarea,.experiments-page select{font-size:16px}}

@@ -1,0 +1,93 @@
+{
+  "verifiedAt": "2026-11-15T08:11:37.782Z",
+  "origin": "https://ukkhnns-macmini.tail2e5038.ts.net",
+  "checks": {
+    "secureCookie": true,
+    "relogin": true,
+    "duplicateRequest": true,
+    "evaluationRestored": true,
+    "exactResponse": true
+  },
+  "run": {
+    "id": "73ad9796-6c12-422c-ab23-ee4335914a5c",
+    "input": {
+      "model": "qwen3.5:27b",
+      "prompt": "Reply with exactly M3_HTTPS_OK and nothing else.",
+      "system": "Follow the requested output format exactly.",
+      "options": {
+        "temperature": 0,
+        "top_p": 1,
+        "seed": 42,
+        "num_ctx": 4096,
+        "num_predict": 1024
+      }
+    },
+    "status": "completed",
+    "createdAt": 1794730271581,
+    "evaluations": [
+      {
+        "id": "be018fc1-1b1b-49b9-b1ca-8a56acd09c0f",
+        "verdict": "pass",
+        "notes": "HTTPS verification: exact M3_HTTPS_OK response after logout/login. Smoke check, not a model quality benchmark.",
+        "createdAt": 1794730297763
+      }
+    ],
+    "execution": {
+      "provider": "ollama",
+      "endpoint": "http://127.0.0.1:11434",
+      "timeoutMs": 180000,
+      "stream": false,
+      "keepAlive": 0,
+      "tools": false
+    },
+    "modelSnapshot": {
+      "name": "qwen3.5:27b",
+      "digest": "2d2e4b8fc7c0479b70f8cba9fc8bdb49a3c9a43a8a6da3873b724c9fca4672ef",
+      "size": 19763237532,
+      "modifiedAt": "2026-11-15T17:10:55.526332815+09:00",
+      "details": {
+        "parent_model": "",
+        "format": "safetensors",
+        "family": "qwen3_5",
+        "families": null,
+        "parameter_size": "27.4B",
+        "quantization_level": "nvfp4",
+        "runner": "mlx"
+      },
+      "remote": false,
+      "capabilities": [
+        "completion",
+        "vision",
+        "thinking",
+        "tools"
+      ],
+      "parameters": "temperature                    1\ntop_k                          20\ntop_p                          0.95\nmin_p                          0\npresence_penalty               1.5\nrepeat_penalty                 1",
+      "template": "{{ .Prompt }}",
+      "system": "",
+      "modelInfo": {
+        "general.architecture": "qwen3_5",
+        "general.parameter_count": 27356382592,
+        "qwen3_5.block_count": 64,
+        "qwen3_5.context_length": 262144,
+        "qwen3_5.embedding_length": 5120
+      },
+      "ollamaVersion": "0.40.16"
+    },
+    "response": {
+      "model": "qwen3.5:27b",
+      "createdAt": "2026-11-15T08:11:37.719081Z",
+      "text": "M3_HTTPS_OK",
+      "thinking": "Thinking Process:\n\n1.  **Analyze the Request:**\n    *   Input: \"Reply with exactly M3_HTTPS_OK and nothing else.\"\n    *   Constraint: The output must be exactly the string \"M3_HTTPS_OK\" with no additional characters, whitespace, or explanations.\n\n2.  **Determine the Output:**\n    *   Target string: `M3_HTTPS_OK`\n\n3.  **Verify Constraints:**\n    *   No markdown formatting (like code blocks).\n    *   No newlines at the beginning or end (unless part of the string, but usually \"exactly\" implies raw text).\n    *   No conversational filler.\n\n4.  **Final Output Generation:**\n    *   `M3_HTTPS_OK`\n\n5.  **Final Check:** Does this match the instruction \"Reply with exactly M3_HTTPS_OK and nothing else\"? Yes.cw",
+      "doneReason": "stop",
+      "metrics": {
+        "total_duration": 26087232250,
+        "load_duration": 10015489583,
+        "prompt_eval_count": 34,
+        "prompt_eval_duration": 1494003709,
+        "eval_count": 201,
+        "eval_duration": 14318024458
+      }
+    },
+    "finishedAt": 1794730297721
+  }
+}
